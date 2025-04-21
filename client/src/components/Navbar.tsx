@@ -6,6 +6,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const Navbar = () => {
   const { isAuthenticated, username, logout } = useAuthContext();
+  console.log('isAuthenticated',{isAuthenticated});
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 

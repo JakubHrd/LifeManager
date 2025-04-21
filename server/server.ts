@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth"; // ✅ Správný import
 import dashboardRoutes from "./routes/dashboard"; // Import dashboardu
 import userRoutes from "./routes/user";
+import mealRoutes from "./routes/mealRoutes";
+import trainingRoutes from "./routes/trainingRoutes";
+import chatGPTRouter from "./routes/chatGPT";
 
 
 
@@ -18,6 +21,10 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/meals", mealRoutes);
+app.use("/api/trainings", trainingRoutes);
+app.use("/api/chat", chatGPTRouter);
+
 
 
 const PORT = process.env.PORT || 5000;
