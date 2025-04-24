@@ -7,6 +7,8 @@ import userRoutes from "./routes/user";
 import mealRoutes from "./routes/mealRoutes";
 import trainingRoutes from "./routes/trainingRoutes";
 import chatGPTRouter from "./routes/chatGPT";
+import habitRoutes from "./routes/habits";
+
 
 
 
@@ -24,6 +26,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/meals", mealRoutes);
 app.use("/api/trainings", trainingRoutes);
 app.use("/api/chat", chatGPTRouter);
+app.use("/api/habits", habitRoutes);
 
 
 
