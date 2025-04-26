@@ -47,27 +47,24 @@ const Habits: React.FC = () => {
 
   return (
     <Container maxWidth="xl">
-      <Box sx={{ textAlign: "center", my: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          ✅ Habit Tracker – Týden {week}, Rok {year}
+      <Box component="section" sx={{ p: 2 }}>
+        <Typography variant="h4" gutterBottom align="center">
+          Habit Tracker – Týden {week}, Rok {year}
         </Typography>
 
-        <Typography variant="subtitle1" color="text.secondary">
-          {getWeekRange(week, year)}
-        </Typography>
-
-        <Box sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
           <Button
-            variant="outlined"
+            variant="contained"
+            sx={{ borderRadius: "16px" }}
             startIcon={<KeyboardArrowLeftIcon />}
             onClick={() => handleWeekChange(-1)}
             disabled={week === 1}
           >
             Předchozí týden
           </Button>
-
           <Button
-            variant="outlined"
+            variant="contained"
+            sx={{ borderRadius: "16px", ml: 2 }}
             endIcon={<KeyboardArrowRightIcon />}
             onClick={() => handleWeekChange(1)}
           >
