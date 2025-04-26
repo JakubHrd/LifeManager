@@ -13,6 +13,7 @@ import Finance from "./pages/Finance";
 import Diet from "./pages/Diet";
 import Training from "./pages/Training";
 import Habits from "./pages/Habits";
+import UserSetting from "./components/UserSettingForm";
 
 
 
@@ -36,6 +37,7 @@ function App() {
               <Route path="habits" element={<Habits />} />
             </Route>
             <Route path="/settings" element={<Settings />} />
+            <Route path="/userSetting" element={<UserSetting />} />
           </Route>
         </Routes>
       </Router>
