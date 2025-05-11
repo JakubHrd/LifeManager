@@ -12,13 +12,15 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  TextField,
+  CircularProgress,
 } from "@mui/material";
 import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+
 import TrainingCalendar from "../components/trainingComponents/TrainingCalendar";
 import ChatGPTAssistant from "../components/ChatGPTAssistant";
-
 
 const Training: React.FC = () => {
   const [trainings, setTrainings] = useState<any>({});
@@ -26,15 +28,44 @@ const Training: React.FC = () => {
   const [suggestion, setSuggestion] = useState<any>(null);
   const [week, setWeek] = useState<number>(moment().isoWeek());
   const [year, setYear] = useState<number>(moment().year());
+  const [loading, setLoading] = useState(false);
   const trainingCalendarRef = useRef<any>(null);
 
   const handleWeekChange = (change: number) => {
-    setWeek((prevWeek) => {
-      setEvaluation("");
-      setSuggestion(null);
-      return prevWeek + change;
-    });
+    setEvaluation("");
+    setSuggestion(null);
+    setWeek((prev) => prev + change);
   };
+
+  const evaluationPrompt = `Jsi zkušený fitness trenér. Vyhodnoť následující týdenní tréninkový plán:
+
+1. Pro KAŽDÝ DEN urč:
+- intenzitu tréninku (nízká / střední / vysoká),
+- typ zatížení (síla, kardio, regenerace, odpočinek),
+- případně doplň komentář k zátěži nebo kvalitě dne.
+
+2. Na ZÁVĚR poskytn:
+- celkové zhodnocení týdne (rovnováha zátěže, případná přetížení nebo mezery),
+- doporučení na zlepšení (např. zařadit více kardio, přidat regeneraci, snížit přetížení, atd.),
+- návrh změn v případě, že něco chybí nebo se opakuje příliš často.
+
+Buď konkrétní a praktický. Vyhodnocení strukturovaně seřaď podle dní (pondělí až neděle) a následně napiš celkový závěr.`;
+
+  const suggestionPrompt = `Jsi fitness trenér. Na základě týdenního tréninkového plánu vytvoř UPRAVENÝ plán tak, že:
+1. Zachováš všechny již vyplněné části – NESMÍŠ je měnit.
+2. Doplň pouze chybějící části tak, aby byl plán vyvážený – kombinuj sílu, kardio a regeneraci.
+3. Nepoužívej výplňové znaky jako '-', '...', 'N/A'.
+4. Pokud není aktivita, doplň např. "regenerace", "protažení", "odpočinek", "lehký běh", atd.
+5. Výstup vrať jako validní JSON ve formátu:
+{
+  "Pondělí": {
+    "main": "...",
+    "evening": "...",
+    "morning": "..."
+  },
+  "Úterý": { ... },
+  ...
+}`;
 
   return (
     <Container maxWidth="xl">
@@ -42,6 +73,7 @@ const Training: React.FC = () => {
         <Typography variant="h4" gutterBottom align="center">
           Tréninkový plán – Týden {week}, Rok {year}
         </Typography>
+
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
           <Button
             variant="contained"
@@ -67,73 +99,79 @@ const Training: React.FC = () => {
         ref={trainingCalendarRef}
         week={week}
         year={year}
-        onTrainingsChange={(data) => setTrainings(data)}
+        onTrainingsChange={setTrainings}
       />
 
-      <Divider sx={{ my: 4 }} />
+      <Divider sx={{ my: 3 }} />
 
       <Box sx={{ mb: 6 }}>
         <Typography variant="h5" gutterBottom>
           🧠 Pomocník ChatGPT
         </Typography>
-        <Box display="flex" gap={2} mt={2} flexWrap="wrap">
-          <ChatGPTAssistant
-            endpoint="chatgpt"
-            data={trainings}
-            systemPrompt={`Jsi zkušený fitness trenér. Vyhodnoť následující týdenní tréninkový plán.
 
-              1. Pro KAŽDÝ DEN urč:
-                 - **intenzitu** tréninku (nízká / střední / vysoká),
-                 - **typ zatížení** (síla, kardio, regenerace, odpočinek),
-                 - případně doplň komentář k zátěži nebo kvalitě dne.
-              
-              2. Na ZÁVĚR poskytn:
-                 - celkové zhodnocení týdne (rovnováha zátěže, případná přetížení nebo mezery),
-                 - **doporučení** na zlepšení (např. zařadit více kardio, přidat regeneraci, snížit přetížení, atd.),
-                 - návrh změn v případě, že něco chybí nebo se opakuje příliš často.
-              
-              Buď konkrétní a praktický. Vyhodnocení strukturovaně seřaď podle dní (pondělí až neděle) a následně napiš celkový závěr.`}              
-            label="Vyhodnotit tréninkový plán"
-            onResponse={(result) => {
-              if (typeof result === "string") {
-                setEvaluation(result);
-              } else {
-                setEvaluation(JSON.stringify(result, null, 2));
-              }
-            }}
-          />
+        <Box display="flex" flexDirection="column" gap={4} mt={2}>
+          {/* Vyhodnocení plánu */}
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Vyhodnotit tréninkový plán
+            </Typography>
+            <TextField
+              multiline
+              rows={6}
+              fullWidth
+              label="Instrukce pro vyhodnocení"
+              value={evaluationPrompt}
+              disabled
+              sx={{ mb: 2 }}
+            />
+            <ChatGPTAssistant
+              endpoint="chatgpt"
+              data={trainings}
+              systemPrompt={evaluationPrompt}
+              label="Vyhodnotit trénink"
+              onResponse={(result) => {
+                if (typeof result === "string") {
+                  setEvaluation(result);
+                } else {
+                  setEvaluation(JSON.stringify(result, null, 2));
+                }
+              }}
+            />
+          </Box>
 
-          <ChatGPTAssistant
-            endpoint="chatgpt"
-            data={trainings}
-            systemPrompt={`Jsi fitness trenér. Na základě níže uvedeného týdenního tréninkového plánu vytvoř UPRAVENÝ plán tak, že:
-              1. Zachováš všechny již vyplněné části – NESMÍŠ je měnit.
-              2. Doplň pouze chybějící části tak, aby byl plán vyvážený – kombinuj sílu, kardio a regeneraci.
-              3. Nepoužívej výplňové znaky jako '-', '...', 'N/A'.
-              4. Pokud není aktivita, doplň např. "regenerace", "protažení", "odpočinek", "lehký běh", atd.
-              5. Výstup vrať jako validní JSON ve formátu:
-              {
-                "Pondělí": {
-                  "main": "...",
-                  "evening": "...",
-                  "morning": "..."
-                },
-                "Úterý": { ... },
-                ...
-              }`}
-            label="Navrhnout vylepšený plán"
-            onResponse={(result) => {
-              if (typeof result === "object") {
-                setSuggestion(result);
-              }
-            }}
-          />
+          {/* Návrh nového plánu */}
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Navrhnout vylepšený plán
+            </Typography>
+            <TextField
+              multiline
+              rows={6}
+              fullWidth
+              label="Instrukce pro návrh plánu"
+              value={suggestionPrompt}
+              disabled
+              sx={{ mb: 2 }}
+            />
+            <ChatGPTAssistant
+              endpoint="chatgpt"
+              data={trainings}
+              systemPrompt={suggestionPrompt}
+              label="Navrhnout trénink"
+              onResponse={(result) => {
+                if (typeof result === "object") {
+                  setSuggestion(result);
+                }
+              }}
+            />
+          </Box>
         </Box>
 
+        {/* Výstup hodnocení */}
         {evaluation && (
           <Paper elevation={3} sx={{ p: 3, mt: 4 }}>
             <Typography variant="h6" gutterBottom>
-              🧪 Hodnocení tréninkového plánu
+              🧪 Hodnocení tréninku
             </Typography>
             <Typography variant="body1" whiteSpace="pre-line">
               {evaluation}
@@ -141,13 +179,12 @@ const Training: React.FC = () => {
           </Paper>
         )}
 
+        {/* Výstup návrhu */}
         {suggestion && (
-          console.log('trainings data',{trainings}),
-          console.log('suggestion data',{suggestion}),
           <>
             <Paper elevation={3} sx={{ p: 3, mt: 4 }}>
               <Typography variant="h6" gutterBottom>
-                ✨ Návrh nového tréninkového plánu
+                ✨ Návrh nového tréninku
               </Typography>
               <TableContainer component={Paper} sx={{ mt: 2 }}>
                 <Table>
@@ -160,12 +197,12 @@ const Training: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {Object.entries(suggestion).map(([day, trainings]: any) => (
+                    {Object.entries(suggestion).map(([day, dayTrainings]: any) => (
                       <TableRow key={day}>
                         <TableCell>{day}</TableCell>
-                        <TableCell>{trainings.morning || "-"}</TableCell>
-                        <TableCell>{trainings.main || "-"}</TableCell>
-                        <TableCell>{trainings.evening || "-"}</TableCell>
+                        <TableCell>{dayTrainings.morning || "-"}</TableCell>
+                        <TableCell>{dayTrainings.main || "-"}</TableCell>
+                        <TableCell>{dayTrainings.evening || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -187,6 +224,7 @@ const Training: React.FC = () => {
           </>
         )}
       </Box>
+
       <Divider sx={{ my: 3 }} />
     </Container>
   );
