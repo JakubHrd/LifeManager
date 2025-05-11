@@ -6,40 +6,15 @@ import {
   Box,
   Divider,
 } from "@mui/material";
+import moment from 'moment';
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import HabitCalendar from "../components/HabitCalendar";
 
-// 📌 Získání aktuálního týdne
-const getCurrentWeek = (): number => {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const pastDays = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-  return Math.ceil((pastDays + startOfYear.getDay() + 1) / 7);
-};
-
-// 📌 Pomocná funkce pro rozsah týdne (volitelné)
-const getWeekRange = (week: number, year: number): string => {
-  const firstDayOfYear = new Date(year, 0, 1);
-  const daysOffset = (week - 1) * 7;
-  const weekStart = new Date(firstDayOfYear.getTime() + daysOffset * 86400000);
-
-  // Najdeme začátek týdne (pondělí)
-  const day = weekStart.getDay();
-  const diff = (day === 0 ? -6 : 1 - day); // neděle => pondělí
-  const monday = new Date(weekStart);
-  monday.setDate(weekStart.getDate() + diff);
-
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-
-  const format = (d: Date) => d.toLocaleDateString("cs-CZ", { day: "numeric", month: "long" });
-  return `${format(monday)} – ${format(sunday)}`;
-};
 
 const Habits: React.FC = () => {
-  const [week, setWeek] = useState<number>(getCurrentWeek());
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [week, setWeek] = useState<number>(moment().isoWeek());
+  const [year, setYear] = useState<number>(moment().year());
 
   const handleWeekChange = (change: number) => {
     setWeek((prev) => prev + change);

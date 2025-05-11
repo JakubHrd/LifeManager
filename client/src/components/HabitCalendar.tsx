@@ -20,6 +20,10 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
+import DragHandleIcon from '@mui/icons-material/DragHandle';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useAuthContext } from "../context/AuthContext";
@@ -47,8 +51,8 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingCopy, setPendingCopy] = useState(false);
   const [deleteHabitName, setDeleteHabitName] = useState<string | null>(null);
-
-  const fetchHabits = useCallback(async () => {
+useEffect(() => {
+  const fetchHabits = async () => {
     if (!isAuthenticated) return;
     try {
       const token = localStorage.getItem("token");
@@ -60,7 +64,9 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
     } catch (err) {
       console.error("Chyba při načítání návyků:", err);
     }
-  }, [week, year, isAuthenticated]);
+  }
+  fetchHabits();
+  }, [week,year,isAuthenticated]);
 
   const saveHabits = useCallback(async (habitsToSave: typeof habits) => {
     try {
@@ -162,68 +168,101 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
     }
   };
 
-  useEffect(() => {
-    fetchHabits();
-  }, [fetchHabits]);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const habitsArray = Object.entries(habits);
+    const oldIndex = habitsArray.findIndex(([key]) => key === active.id);
+    const newIndex = habitsArray.findIndex(([key]) => key === over.id);
+
+    const newHabitsArray = arrayMove(habitsArray, oldIndex, newIndex);
+    const newHabits = Object.fromEntries(newHabitsArray);
+
+    setHabits(newHabits);
+    saveHabits(newHabits);
+  };
+
+  // Lokální komponenta Sortable řádku
+  const SortableHabitRow: React.FC<{ habit: string }> = ({ habit }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: habit });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    return (
+      <TableRow ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <TableCell component="th" scope="row">
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <IconButton {...listeners} size="small">
+              <DragHandleIcon fontSize="small" />
+            </IconButton>
+            <span>{habit}</span>
+            <IconButton onClick={() => confirmDeleteHabit(habit)} size="small" color="error">
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </TableCell>
+        {days.map(({ key }) => (
+          <TableCell key={key} align="center">
+            <Checkbox
+              checked={!!habits[habit]?.[key]}
+              onChange={() => handleToggle(habit, key)}
+              color="primary"
+            />
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  };
 
   return (
     <Box mt={4}>
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Návyk</TableCell>
-              {days.map((day) => (
-                <TableCell key={day.key} align="center">{day.label}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Object.keys(habits).map((habit) => (
-              <TableRow key={habit}>
-                <TableCell component="th" scope="row">
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <span>{habit}</span>
-                    <IconButton onClick={() => confirmDeleteHabit(habit)} size="small" color="error">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-                {days.map(({ key }) => (
-                  <TableCell key={key} align="center">
-                    <Checkbox
-                      checked={!!habits[habit]?.[key]}
-                      onChange={() => handleToggle(habit, key)}
-                      color="primary"
-                    />
-                  </TableCell>
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={Object.keys(habits)}>
+          <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Návyk</TableCell>
+                  {days.map((day) => (
+                    <TableCell key={day.key} align="center">{day.label}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.keys(habits).map((habit) => (
+                  <SortableHabitRow key={habit} habit={habit} />
                 ))}
-              </TableRow>
-            ))}
-            <TableRow>
-              <TableCell colSpan={days.length + 1}>
-                <Box display="flex" alignItems="center" gap={2}>
-                  <TextField
-                    label="Nový návyk"
-                    size="small"
-                    value={newHabit}
-                    onChange={(e) => setNewHabit(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleAddHabit();
-                      }
-                    }}
-                    fullWidth
-                  />
-                  <IconButton onClick={handleAddHabit} color="primary">
-                    <AddIcon />
-                  </IconButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+                <TableRow>
+                  <TableCell colSpan={days.length + 1}>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <TextField
+                        label="Nový návyk"
+                        size="small"
+                        value={newHabit}
+                        onChange={(e) => setNewHabit(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleAddHabit();
+                          }
+                        }}
+                        fullWidth
+                      />
+                      <IconButton onClick={handleAddHabit} color="primary">
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </SortableContext>
+      </DndContext>
+
 
       <Box mt={4} display="flex" justifyContent="center">
         <Button variant="contained" color="secondary" onClick={copyHabitsToNextWeek}>

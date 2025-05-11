@@ -4,6 +4,16 @@ import authMiddleware from "../middleware/authMiddleware";
 
 const router = express.Router();
 
+function formatDateToString(date: Date | null): string | null {
+    if (!date) return null;
+  
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, "0"); // měsíc +1 protože 0 = leden
+    const day = date.getDate().toString().padStart(2, "0");
+  
+    return `${year}-${month}-${day}`;
+  }
+
 // 📌 Výchozí struktura návyků (klidně uprav na {} pokud budeš chtít ukládat návyky podle názvu)
 const defaultUserSetting = {};
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
@@ -38,12 +48,12 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
           });
         return;
       }
-  
+      const birthDate = formatDateToString(result.rows[0].birth_date);
       // Vracíme pouze habits
       res.json({ 
         height_cm : result.rows[0].height_cm,
         weight_kg : result.rows[0].weight_kg,
-        birth_date : result.rows[0].birth_date,
+        birth_date : birthDate,
         gender : result.rows[0].gender,
         target_weight_kg : result.rows[0].target_weight_kg,
         main_goal : result.rows[0].main_goal, 

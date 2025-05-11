@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { Box, Button, MenuItem, Select, TextField, Typography, FormControl, InputLabel, SelectChangeEvent } from "@mui/material";
+
 
 interface UserSetting {
   height_cm: number | null;
@@ -25,7 +27,6 @@ const UserSettingForm = () => {
   const token = localStorage.getItem("token"); // pokud ukládáš JWT token
 
   useEffect(() => {
-    console.log('token' ,{token});
     const fetchUserSetting = async () => {
       try {
         const res = await fetch("http://localhost:5000/api/userSetting", {
@@ -34,6 +35,7 @@ const UserSettingForm = () => {
           },
         });
         const data = await res.json();
+        console.log('fetchUserSetting - data',{data});
         setUserSetting(data);
       } catch (error) {
         console.error("Chyba při načítání nastavení", error);
@@ -43,9 +45,18 @@ const UserSettingForm = () => {
     };
 
     fetchUserSetting();
-  }, []);
+  }, [token]); // přidáno token jako závislost
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // 👇 Oprava: dvě oddělené funkce na input a select
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setUserSetting((prev) => ({
+      ...prev,
+      [name]: value === "" ? null : value,
+    }));
+  };
+
+  const handleSelectChange = (e: SelectChangeEvent<string>) => {
     const { name, value } = e.target;
     setUserSetting((prev) => ({
       ...prev,
@@ -56,7 +67,6 @@ const UserSettingForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-        console.log('userSetting',{userSetting});
       const res = await fetch("http://localhost:5000/api/userSetting", {
         method: "POST",
         headers: {
@@ -81,68 +91,97 @@ const UserSettingForm = () => {
   if (loading) return <p>Načítání...</p>;
 
   return (
-    <div style={{ maxWidth: "500px", margin: "0 auto" }}>
-      <h2>Moje nastavení</h2>
-      {message && <p>{message}</p>}
+    <Box maxWidth="500px" margin="0 auto" padding={2}>
+      <Typography variant="h4" align="center" gutterBottom>
+        Moje nastavení
+      </Typography>
+
+      {message && (
+        <Typography color="primary" align="center" gutterBottom>
+          {message}
+        </Typography>
+      )}
+
       <form onSubmit={handleSubmit}>
-        <div>
-          <label>Výška (cm):</label>
-          <input
+        <Box display="flex" flexDirection="column" gap={2}>
+          <TextField
+            label="Výška (cm)"
             type="number"
             name="height_cm"
             value={userSetting.height_cm ?? ""}
-            onChange={handleChange}
+            onChange={handleInputChange}
+            fullWidth
           />
-        </div>
-        <div>
-          <label>Váha (kg):</label>
-          <input
+
+          <TextField
+            label="Váha (kg)"
             type="number"
             name="weight_kg"
             value={userSetting.weight_kg ?? ""}
-            onChange={handleChange}
+            onChange={handleInputChange}
+            fullWidth
           />
-        </div>
-        <div>
-          <label>Datum narození:</label>
-          <input
+
+          <TextField
+            label="Datum narození"
             type="date"
             name="birth_date"
-            value={userSetting.birth_date ?? ""}
-            onChange={handleChange}
+            value={userSetting.birth_date}
+            onChange={handleInputChange}
+            fullWidth
+            InputLabelProps={{
+              shrink: true,
+            }}
           />
-        </div>
-        <div>
-          <label>Pohlaví:</label>
-          <select name="gender" value={userSetting.gender ?? ""} onChange={handleChange}>
-            <option value="">-- vyber --</option>
-            <option value="male">Muž</option>
-            <option value="female">Žena</option>
-            <option value="other">Jiné</option>
-          </select>
-        </div>
-        <div>
-          <label>Cílová váha (kg):</label>
-          <input
+
+          <FormControl fullWidth>
+            <InputLabel id="gender-label">Pohlaví</InputLabel>
+            <Select
+              labelId="gender-label"
+              label="Pohlaví"
+              name="gender"
+              value={userSetting.gender ?? ""}
+              onChange={handleSelectChange}
+            >
+              <MenuItem value="">-- vyber --</MenuItem>
+              <MenuItem value="male">Muž</MenuItem>
+              <MenuItem value="female">Žena</MenuItem>
+              <MenuItem value="other">Jiné</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Cílová váha (kg)"
             type="number"
             name="target_weight_kg"
             value={userSetting.target_weight_kg ?? ""}
-            onChange={handleChange}
+            onChange={handleInputChange}
+            fullWidth
           />
-        </div>
-        <div>
-          <label>Hlavní cíl:</label>
-          <select name="main_goal" value={userSetting.main_goal ?? ""} onChange={handleChange}>
-            <option value="">-- vyber --</option>
-            <option value="lose_weight">Zhubnout</option>
-            <option value="maintain_weight">Udržet váhu</option>
-            <option value="gain_muscle">Nabrat svaly</option>
-            <option value="improve_health">Zlepšit zdraví</option>
-          </select>
-        </div>
-        <button type="submit" style={{ marginTop: "20px" }}>Uložit nastavení</button>
+
+          <FormControl fullWidth>
+            <InputLabel id="main-goal-label">Hlavní cíl</InputLabel>
+            <Select
+              labelId="main-goal-label"
+              label="Hlavní cíl"
+              name="main_goal"
+              value={userSetting.main_goal ?? ""}
+              onChange={handleSelectChange}
+            >
+              <MenuItem value="">-- vyber --</MenuItem>
+              <MenuItem value="lose_weight">Zhubnout</MenuItem>
+              <MenuItem value="maintain_weight">Udržet váhu</MenuItem>
+              <MenuItem value="gain_muscle">Nabrat svaly</MenuItem>
+              <MenuItem value="improve_health">Zlepšit zdraví</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
+            Uložit nastavení
+          </Button>
+        </Box>
       </form>
-    </div>
+    </Box>
   );
 };
 

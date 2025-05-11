@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon server.ts",
     "build": "tsc",
-    "start": "node server.js"
+    "start": "node server.js",
+    "docs": "typedoc --out ../docs/backend src"
   },
   "keywords": [],
   "author": "",

@@ -14,8 +14,10 @@ import Diet from "./pages/Diet";
 import Training from "./pages/Training";
 import Habits from "./pages/Habits";
 import UserSetting from "./components/UserSettingForm";
+import MainDashboard from "./pages/MainDashboardPage";
 
-
+//!!! TODO - add logic to Finance route
+//<Route path="finance" element={<Finance />} />
 
 function App() {
   return (
@@ -30,8 +32,7 @@ function App() {
           {/* 🔥 Chráněné routy */}
           <Route element={<PrivateRoute />}>
             <Route path="/dashboard" element={<Dashboard />}>
-              <Route index element={<Finance />} />
-              <Route path="finance" element={<Finance />} />
+              <Route index element={<MainDashboard />} />
               <Route path="diet" element={<Diet />} />
               <Route path="training" element={<Training />} />
               <Route path="habits" element={<Habits />} />
