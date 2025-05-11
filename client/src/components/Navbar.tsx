@@ -36,6 +36,7 @@ const Navbar = () => {
             </Box>
             <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
               <MenuItem onClick={() => { handleMenuClose(); navigate("/settings"); }}>Nastavení účtu</MenuItem>
+              <MenuItem onClick={() => { handleMenuClose(); navigate("/userSetting"); }}>Nastavení uživatele</MenuItem>
               <MenuItem onClick={() => { handleMenuClose(); logout(); navigate("/login"); }}>Odhlásit</MenuItem>
             </Menu>
           </>

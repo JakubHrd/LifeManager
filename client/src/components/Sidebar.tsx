@@ -19,10 +19,9 @@ import {
   ChevronRight,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-
+//{ text: "Finance", path: "/dashboard/finance", icon: <AccountBalanceWallet /> },
 const menuItems = [
   { text: "Dashboard", path: "/dashboard", icon: <Dashboard /> },
-  { text: "Finance", path: "/dashboard/finance", icon: <AccountBalanceWallet /> },
   { text: "Jídelníček", path: "/dashboard/diet", icon: <Fastfood /> },
   { text: "Tréninkový plán", path: "/dashboard/training", icon: <FitnessCenter /> },
   { text: "Habit Tracker", path: "/dashboard/habits", icon: <CheckCircle /> },

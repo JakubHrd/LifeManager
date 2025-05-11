@@ -7,6 +7,7 @@ interface ChatGPTAssistantProps {
   systemPrompt: string;
   onResponse: (result: string | object) => void;
   label: string;
+  userSetting?: any;
 }
 
 const ChatGPTAssistant: React.FC<ChatGPTAssistantProps> = ({
@@ -14,11 +15,13 @@ const ChatGPTAssistant: React.FC<ChatGPTAssistantProps> = ({
   data,
   systemPrompt,
   onResponse,
-  label
+  label, 
+  userSetting,
 }) => {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
+    console.log('handleClick chat userSetting',{userSetting});
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -28,7 +31,7 @@ const ChatGPTAssistant: React.FC<ChatGPTAssistantProps> = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ data, systemPrompt }),
+        body: JSON.stringify({ data, userSetting, systemPrompt }),
       });
   
       const text = await res.text(); // 🧠 přečteme jako text pro případ HTML

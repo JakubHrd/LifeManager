@@ -21,10 +21,8 @@ const defaultHabits = {};
 router.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const week =
-      parseInt(req.query.week as string) || getCurrentWeekAndYear().week;
-    const year =
-      parseInt(req.query.year as string) || getCurrentWeekAndYear().year;
+    const week = parseInt(req.query.week as string) || getCurrentWeekAndYear().week;
+    const year = parseInt(req.query.year as string) || getCurrentWeekAndYear().year;
 
     const result = await pool.query(
       "SELECT habits FROM habit_plans WHERE user_id = $1 AND week = $2 AND year = $3",
@@ -64,23 +62,36 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const { habits } = req.body;
-    const week =
-      parseInt(req.query.week as string) || getCurrentWeekAndYear().week;
-    const year =
-      parseInt(req.query.year as string) || getCurrentWeekAndYear().year;
+    const week =parseInt(req.query.week as string) || getCurrentWeekAndYear().week;
+    const year = parseInt(req.query.year as string) || getCurrentWeekAndYear().year;
+    console.log('HABIT post entry data',{
+      userId,
+      week,
+      reqWeek : req.query.week,
+      year,
+      reqYear : req.query.year,
+      habits
 
+    });
     const existing = await pool.query(
       "SELECT id FROM habit_plans WHERE user_id = $1 AND week = $2 AND year = $3",
       [userId, week, year]
     );
-
+    //console.log(`existing`,{existing});
     const serializedHabits = JSON.stringify(habits);
 
     if (existing.rows.length > 0) {
-      await pool.query(
-        "UPDATE habit_plans SET habits = $1 WHERE user_id = $2 AND week = $3 AND year = $4",
-        [serializedHabits, userId, week, year]
-      );
+      /*console.log(`existing.rows.length`,{
+        userId,
+        week,
+        year,
+        serializedHabits,
+        length:existing.rows.length});*/
+        const result = await pool.query(
+          "UPDATE habit_plans SET habits = $1 WHERE user_id = $2 AND week = $3 AND year = $4",
+          [serializedHabits, userId, week, year]
+        );
+        //console.log("Affected rows:", {result, rowCount:result.rowCount});
     } else {
       await pool.query(
         "INSERT INTO habit_plans (user_id, week, year, habits) VALUES ($1, $2, $3, $4)",

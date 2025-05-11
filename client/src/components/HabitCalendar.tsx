@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   TableContainer,
@@ -20,6 +20,10 @@ import {
   DialogContentText,
   DialogActions,
 } from "@mui/material";
+import DragHandleIcon from '@mui/icons-material/DragHandle';
+import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useAuthContext } from "../context/AuthContext";
@@ -43,19 +47,12 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
   const { isAuthenticated } = useAuthContext();
   const [habits, setHabits] = useState<Record<string, Record<string, boolean>>>({});
   const [newHabit, setNewHabit] = useState<string>("");
-
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error",
-  });
-
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingCopy, setPendingCopy] = useState(false);
   const [deleteHabitName, setDeleteHabitName] = useState<string | null>(null);
-
+useEffect(() => {
   const fetchHabits = async () => {
-    setHabits({});
     if (!isAuthenticated) return;
     try {
       const token = localStorage.getItem("token");
@@ -67,48 +64,50 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
     } catch (err) {
       console.error("Chyba při načítání návyků:", err);
     }
-  };
+  }
+  fetchHabits();
+  }, [week,year,isAuthenticated]);
 
-  const saveHabits = async (updatedHabits: typeof habits) => {
+  const saveHabits = useCallback(async (habitsToSave: typeof habits) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch("http://localhost:5000/api/habits", {
+      await fetch(`http://localhost:5000/api/habits?week=${week}&year=${year}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ week, year, habits: updatedHabits }),
+        body: JSON.stringify({ week, year, habits: habitsToSave }),
       });
     } catch (err) {
       console.error("Chyba při ukládání návyků:", err);
     }
-  };
+  }, [week, year]);
 
   const handleToggle = (habit: string, dayKey: string) => {
-    const updatedHabits = {
-      ...habits,
-      [habit]: {
-        ...habits[habit],
-        [dayKey]: !habits[habit]?.[dayKey],
-      },
-    };
-    setHabits(updatedHabits);
-    saveHabits(updatedHabits);
+    setHabits((prev) => {
+      const updated = {
+        ...prev,
+        [habit]: {
+          ...prev[habit],
+          [dayKey]: !prev[habit]?.[dayKey],
+        },
+      };
+      saveHabits(updated);
+      return updated;
+    });
   };
 
   const handleAddHabit = () => {
     if (!newHabit.trim()) return;
     const trimmed = newHabit.trim();
     if (habits[trimmed]) return;
-
-    const updatedHabits = {
-      ...habits,
-      [trimmed]: {},
-    };
-    setHabits(updatedHabits);
+    setHabits((prev) => {
+      const updated = { ...prev, [trimmed]: {} };
+      saveHabits(updated);
+      return updated;
+    });
     setNewHabit("");
-    saveHabits(updatedHabits);
   };
 
   const confirmDeleteHabit = (habit: string) => {
@@ -117,10 +116,12 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
 
   const handleDeleteHabit = () => {
     if (!deleteHabitName) return;
-    const updatedHabits = { ...habits };
-    delete updatedHabits[deleteHabitName];
-    setHabits(updatedHabits);
-    saveHabits(updatedHabits);
+    setHabits((prev) => {
+      const updated = { ...prev };
+      delete updated[deleteHabitName];
+      saveHabits(updated);
+      return updated;
+    });
     setDeleteHabitName(null);
   };
 
@@ -167,65 +168,101 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
     }
   };
 
-  useEffect(() => {
-    console.log("📆 Změna týdne:", week, year);
-    setHabits({});
-    fetchHabits();
-  }, [week, year, isAuthenticated]);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const habitsArray = Object.entries(habits);
+    const oldIndex = habitsArray.findIndex(([key]) => key === active.id);
+    const newIndex = habitsArray.findIndex(([key]) => key === over.id);
+
+    const newHabitsArray = arrayMove(habitsArray, oldIndex, newIndex);
+    const newHabits = Object.fromEntries(newHabitsArray);
+
+    setHabits(newHabits);
+    saveHabits(newHabits);
+  };
+
+  // Lokální komponenta Sortable řádku
+  const SortableHabitRow: React.FC<{ habit: string }> = ({ habit }) => {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: habit });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    return (
+      <TableRow ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <TableCell component="th" scope="row">
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <IconButton {...listeners} size="small">
+              <DragHandleIcon fontSize="small" />
+            </IconButton>
+            <span>{habit}</span>
+            <IconButton onClick={() => confirmDeleteHabit(habit)} size="small" color="error">
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </TableCell>
+        {days.map(({ key }) => (
+          <TableCell key={key} align="center">
+            <Checkbox
+              checked={!!habits[habit]?.[key]}
+              onChange={() => handleToggle(habit, key)}
+              color="primary"
+            />
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  };
 
   return (
     <Box mt={4}>
-      <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Návyk</TableCell>
-              {days.map((day) => (
-                <TableCell key={day.key} align="center">{day.label}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {Object.keys(habits).map((habit) => (
-              <TableRow key={habit}>
-                <TableCell component="th" scope="row">
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <span>{habit}</span>
-                    <IconButton onClick={() => confirmDeleteHabit(habit)} size="small" color="error">
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-                {days.map(({ key }) => (
-                  <TableCell key={key} align="center">
-                    <Checkbox
-                      checked={!!habits[habit]?.[key]}
-                      onChange={() => handleToggle(habit, key)}
-                      color="primary"
-                    />
-                  </TableCell>
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={Object.keys(habits)}>
+          <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Návyk</TableCell>
+                  {days.map((day) => (
+                    <TableCell key={day.key} align="center">{day.label}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.keys(habits).map((habit) => (
+                  <SortableHabitRow key={habit} habit={habit} />
                 ))}
-              </TableRow>
-            ))}
-            <TableRow>
-              <TableCell colSpan={days.length + 1}>
-                <Box display="flex" alignItems="center" gap={2}>
-                  <TextField
-                    label="Nový návyk"
-                    size="small"
-                    value={newHabit}
-                    onChange={(e) => setNewHabit(e.target.value)}
-                    fullWidth
-                  />
-                  <IconButton onClick={handleAddHabit} color="primary">
-                    <AddIcon />
-                  </IconButton>
-                </Box>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+                <TableRow>
+                  <TableCell colSpan={days.length + 1}>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <TextField
+                        label="Nový návyk"
+                        size="small"
+                        value={newHabit}
+                        onChange={(e) => setNewHabit(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleAddHabit();
+                          }
+                        }}
+                        fullWidth
+                      />
+                      <IconButton onClick={handleAddHabit} color="primary">
+                        <AddIcon />
+                      </IconButton>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </SortableContext>
+      </DndContext>
+
 
       <Box mt={4} display="flex" justifyContent="center">
         <Button variant="contained" color="secondary" onClick={copyHabitsToNextWeek}>
@@ -233,7 +270,6 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
         </Button>
       </Box>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -249,7 +285,6 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
         </Alert>
       </Snackbar>
 
-      {/* Confirm overwrite dialog */}
       <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
         <DialogTitle>Přepsat návyky?</DialogTitle>
         <DialogContent>
@@ -267,7 +302,6 @@ const HabitCalendar: React.FC<HabitCalendarProps> = ({ week, year }) => {
         </DialogActions>
       </Dialog>
 
-      {/* Confirm delete dialog */}
       <Dialog open={!!deleteHabitName} onClose={() => setDeleteHabitName(null)}>
         <DialogTitle>Odstranit návyk?</DialogTitle>
         <DialogContent>

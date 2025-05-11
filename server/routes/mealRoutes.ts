@@ -100,7 +100,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
   });
 
 // 📌 Uložit nebo aktualizovat jídelníček pro aktuální týden a rok
-router.post("/", authMiddleware, async (req: Request, res: Response) => {
+router.post("/", authMiddleware, async (req: Request, res: Response) => { 
     try {
       const userId = (req as any).user.id;
       const { meals } = req.body;
@@ -131,5 +131,84 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
     }
   });
   
+  router.post("/copy", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const currentWeek = parseInt(req.query.week as string);
+      const currentYear = parseInt(req.query.year as string);
+      const forceOverwrite = req.query.force === "true";
+  
+      if (!currentWeek || !currentYear) {
+        res.status(400).json({ message: "Chybí parametr 'week' nebo 'year'." });
+        return;
+      }
+  
+      const nextWeek = currentWeek + 1;
+  
+      const current = await pool.query(
+        "SELECT meals FROM meal_plans WHERE user_id = $1 AND week = $2 AND year = $3",
+        [userId, currentWeek, currentYear]
+      );
+      console.log('current',{current})
+      if (current.rows.length === 0) {
+        res
+          .status(404)
+          .json({ message: "Pro aktuální týden nejsou žádné návyky." });
+        return;
+      }
+  
+      const originalMeals = current.rows[0].meals;
+
+  
+      const exists = await pool.query(
+        "SELECT meals FROM meal_plans WHERE user_id = $1 AND week = $2 AND year = $3",
+        [userId, nextWeek, currentYear]
+      );
+      console.log('exists',{
+          exists, 
+          stringify : JSON.stringify(exists?.rows), 
+          fields : exists.fields,
+          habits : exists.rows[0].habits
+      });
+  
+      if (exists.rows.length > 0) {
+          const existingHabits = exists.rows[0].habits;
+          const hasHabits = existingHabits && Object.keys(existingHabits).length > 0;
+          console.log(`hasHabits: ${hasHabits}`);
+        if (hasHabits && !forceOverwrite) {
+          res
+            .status(409)
+            .json({ message: "Návyky pro příští týden už existují." });
+          return;
+        }
+  
+        // Přepisujeme stávající záznam
+        await pool.query(
+          "UPDATE meal_plans SET meals = $1 WHERE user_id = $2 AND week = $3 AND year = $4",
+          [JSON.stringify(originalMeals), userId, nextWeek, currentYear]
+        );
+  
+        res.json({
+          success: true,
+          message: `Návyky byly přepsány pro týden ${nextWeek}`,
+        });
+        return;
+      }
+  
+      // Vložení nového záznamu
+      await pool.query(
+        "INSERT INTO meal_plans (user_id, week, year, habits) VALUES ($1, $2, $3, $4)",
+        [userId, nextWeek, currentYear, JSON.stringify(originalMeals)]
+      );
+  
+      res.json({
+        success: true,
+        message: `Návyky byly zkopírovány do týdne ${nextWeek}`,
+      });
+    } catch (err) {
+      console.error("❌ Chyba při kopírování návyků:", err);
+      res.status(500).json({ message: "Chyba serveru při kopírování návyků." });
+    }
+  });
 
 export default router;
