@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Box, Button, MenuItem, Select, TextField, Typography, FormControl, InputLabel, SelectChangeEvent } from "@mui/material";
-
+import serverUrl from "../config";
 
 interface UserSetting {
   height_cm: number | null;
@@ -29,7 +29,7 @@ const UserSettingForm = () => {
   useEffect(() => {
     const fetchUserSetting = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/userSetting", {
+        const res = await fetch(`${serverUrl}/api/userSetting`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -67,7 +67,7 @@ const UserSettingForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:5000/api/userSetting", {
+      const res = await fetch(`${serverUrl}/api/userSetting`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

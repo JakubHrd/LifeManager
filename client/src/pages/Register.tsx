@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext"; // ✅ Přidán AuthContext
-
+import serverUrl from '../config';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
@@ -16,7 +16,7 @@ const Register: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("http://localhost:5000/api/auth/register", {
+    const res = await fetch(`${serverUrl}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Button, Box, CircularProgress, Backdrop, Typography } from "@mui/material";
+import serverUrl from "../config";
 
 interface ChatGPTAssistantProps {
   endpoint: "chatgpt" | "chatgpt/suggest";
@@ -25,7 +26,7 @@ const ChatGPTAssistant: React.FC<ChatGPTAssistantProps> = ({
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/chat/${endpoint}`, {
+      const res = await fetch(`${serverUrl}/api/chat/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

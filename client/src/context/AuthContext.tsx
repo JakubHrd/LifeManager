@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import serverUrl from "../config";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -18,7 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const res = await fetch("http://localhost:5000/api/user/profile", {
+          const res = await fetch(`${serverUrl}/api/user/profile`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
           });

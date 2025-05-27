@@ -18,6 +18,7 @@ import { useAuthContext } from "../../context/AuthContext";
 import TrainingTableHeader from "./TrainingTableHeader";
 import TrainingTableRow from "./TrainingTableRow";
 import { translations } from "../../utils/translations";
+import serverUrl from "../../config";
 
 // Konstanty pro dny a části dne
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -92,7 +93,7 @@ const TrainingCalendar = forwardRef(({ week, year, onTrainingsChange }: Training
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `http://localhost:5000/api/trainings?week=${week}&year=${year}`,
+          `${serverUrl}/api/trainings?week=${week}&year=${year}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -127,7 +128,7 @@ const TrainingCalendar = forwardRef(({ week, year, onTrainingsChange }: Training
     onTrainingsChange?.(updated);
 
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/trainings?week=${week}&year=${year}`, {
+    await fetch(`${serverUrl}/api/trainings?week=${week}&year=${year}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -156,7 +157,7 @@ const TrainingCalendar = forwardRef(({ week, year, onTrainingsChange }: Training
   // Uloží tréninkový plán na server
   const savePlan = async () => {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/trainings?week=${week}&year=${year}`, {
+    await fetch(`${serverUrl}/api/trainings?week=${week}&year=${year}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
