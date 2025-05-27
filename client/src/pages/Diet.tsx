@@ -20,6 +20,7 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import MealCalendar from "../components/mealsComponents/MealCalendar";
 import ChatGPTAssistant from "../components/ChatGPTAssistant";
+import serverUrl from "../config";
 
 
 
@@ -77,7 +78,7 @@ const Diet: React.FC = () => {
     const fetchUserSetting = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:5000/api/userSetting", {
+        const res = await fetch(`${serverUrl}/api/userSetting`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

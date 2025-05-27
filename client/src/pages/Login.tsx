@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Button, Container, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext"; // ✅ Přidán AuthContext
+import serverUrl from '../config';
 
 
 const Login: React.FC = () => {
@@ -16,12 +17,13 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("http://localhost:5000/api/auth/login", {
+    console.log(`serverUrl: ${serverUrl}`);
+    const res = await fetch(`${serverUrl}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData),
     });
-
+    console.log(`res`, res);
     if (res.ok) {
       const data = await res.json();
       login(data.token); // ✅ Aktualizace stavu přihlášení

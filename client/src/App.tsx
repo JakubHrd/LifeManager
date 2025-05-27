@@ -22,7 +22,7 @@ import MainDashboard from "./pages/MainDashboardPage";
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename="/projekty/lifeManager">
         <Navbar />
         <Routes>
           <Route path="/" element={<LandingPage />} />

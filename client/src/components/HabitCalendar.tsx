@@ -27,6 +27,7 @@ import { CSS } from '@dnd-kit/utilities';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useAuthContext } from "../context/AuthContext";
+import serverUrl from "../config";
 
 interface HabitCalendarProps {
   week: number;
@@ -56,7 +57,7 @@ useEffect(() => {
     if (!isAuthenticated) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/habits?week=${week}&year=${year}`, {
+      const res = await fetch(`${serverUrl}/api/habits?week=${week}&year=${year}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -71,7 +72,7 @@ useEffect(() => {
   const saveHabits = useCallback(async (habitsToSave: typeof habits) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/habits?week=${week}&year=${year}`, {
+      await fetch(`${serverUrl}/api/habits?week=${week}&year=${year}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,7 +128,7 @@ useEffect(() => {
 
   const copyHabitsToNextWeek = async () => {
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api/habits/copy?week=${week}&year=${year}`;
+    const url = `${serverUrl}/api/habits/copy?week=${week}&year=${year}`;
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -152,7 +153,7 @@ useEffect(() => {
     if (!pendingCopy) return;
 
     const token = localStorage.getItem("token");
-    const url = `http://localhost:5000/api/habits/copy?week=${week}&year=${year}&force=true`;
+    const url = `${serverUrl}/api/habits/copy?week=${week}&year=${year}&force=true`;
 
     try {
       const res = await fetch(url, {

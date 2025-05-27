@@ -18,6 +18,8 @@ import Sidebar from "../components/Sidebar";
 import { Outlet } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
 import moment from "moment";
+import serverUrl from '../config';
+
 
 const MainDashboard: React.FC = () => {
   // Získání informace o autentizaci uživatele
@@ -110,7 +112,7 @@ const MainDashboard: React.FC = () => {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `http://localhost:5000/api/${endpoint}?week=${week}&year=${year}`,
+          `${serverUrl}/api/${endpoint}?week=${week}&year=${year}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

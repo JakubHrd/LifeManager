@@ -26,6 +26,7 @@ import { MealsByDay } from "../../types/mealTypes";
 import MealTableHeader from "./MealTableHeader";
 import MealTableRow from "./MealTableRow";
 import { translations } from "../../utils/translations";
+import serverUrl from "../../config";
 
 // Konstanty pro dny a typy jídel
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -102,7 +103,7 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `http://localhost:5000/api/meals?week=${week}&year=${year}`,
+          `${serverUrl}/api/meals?week=${week}&year=${year}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -139,7 +140,7 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
 
     const token = localStorage.getItem("token");
     await fetch(
-      `http://localhost:5000/api/meals?week=${week}&year=${year}`,
+      `${serverUrl}/api/meals?week=${week}&year=${year}`,
       {
         method: "POST",
         headers: {
@@ -171,7 +172,7 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
   const savePlan = async () => {
     const token = localStorage.getItem("token");
     await fetch(
-      `http://localhost:5000/api/meals?week=${week}&year=${year}`,
+      `${serverUrl}/api/meals?week=${week}&year=${year}`,
       {
         method: "POST",
         headers: {
@@ -187,7 +188,7 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
   const copyMealsToNextWeek = async () => {
     const token = localStorage.getItem("token");
     const res = await fetch(
-      `http://localhost:5000/api/meals/copy?week=${week}&year=${year}`,
+      `${serverUrl}/api/meals/copy?week=${week}&year=${year}`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -211,7 +212,7 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
 
     const token = localStorage.getItem("token");
     const res = await fetch(
-      `http://localhost:5000/api/meals/copy?week=${week}&year=${year}&force=true`,
+      `${serverUrl}/api/meals/copy?week=${week}&year=${year}&force=true`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
