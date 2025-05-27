@@ -5,7 +5,9 @@ dotenv.config();
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: false
+      ssl: {
+        rejectUnauthorized: false, // ignoruje neověřené certifikáty (Render to potřebuje)
+      },
 });
 
 export default pool;
