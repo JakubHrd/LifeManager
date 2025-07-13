@@ -1,226 +1,164 @@
 import express, { Request, Response } from "express";
-import pool from "../db"; // PostgreSQL connection pool
-import authMiddleware from "../middleware/authMiddleware"; // Middleware to verify user authentication
-import moment from "moment";
+import { authMiddleware } from "../middleware/authMiddleware";
+import {
+  getMealPlan,
+  saveMealPlan,
+  copyMealPlan,
+} from "../controllers/mealController";
 
-const router = express.Router();
+/**
+ * Router for meal routes.
+ */
+const mealRoutes = express.Router();
 
-// 🔧 Utility function to determine the current calendar week and year
-const getCurrentWeekAndYear = () => {
-  const now = new Date();
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  const dayOfYear = Math.floor(
-    (now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000)
-  );
-  const week = Math.ceil((dayOfYear + startOfYear.getDay() + 1) / 7);
-  return { week, year: now.getFullYear() };
-};
+/**
+ * Retrieves the meal plan for the current user and week.
+ * If no meal plan exists, a default one is created.
+ * 
+ * @param req Request object containing user ID and query parameters for week and year.
+ * @param res Response object used to send the JSON response.
+ * 
+ * @returns JSON response with the meal plan.
+ * 
+ * @swagger
+ * /api/meals:
+ *   get:
+ *     summary: Get meal plan for current user and week
+ *     description: Retrieves the meal plan for the current user and week. If no meal plan exists, a default one is created.
+ *     tags: [Meals]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: week
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Week number (1–52)
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Full year (e.g., 2025)
+ *     responses:
+ *       200:
+ *         description: Meal plan successfully retrieved
+ *       401:
+ *         description: Unauthorized access
+ */
+mealRoutes.get("/", authMiddleware, getMealPlan);
 
-// 📌 Default meal structure for each day of the week — repetitive and a candidate for dynamic generation
-const defaultMeals = {
-  Monday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    launch: { description: "", eaten: false }, // ⚠️ Typo? Possibly meant to be "lunch"
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-  Tuesday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    launch: { description: "", eaten: false },
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-  Wednesday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    launch: { description: "", eaten: false },
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-  Thursday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    launch: { description: "", eaten: false },
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-  Friday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    launch: { description: "", eaten: false },
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-  Saturday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    launch: { description: "", eaten: false },
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-  Sunday: {
-    breakfast: { description: "", eaten: false },
-    snack: { description: "", eaten: false },
-    lunch: { description: "", eaten: false }, // ✅ Correct key name
-    snack2: { description: "", eaten: false },
-    dinner: { description: "", eaten: false },
-  },
-};
+/**
+ * Saves the meal plan for the current user and week.
+ * If a meal plan already exists, it is updated.
+ * 
+ * @param req Request object containing user ID, query parameters (week, year), and meals data in the body.
+ * @param res Response object used to send the JSON response.
+ * 
+ * @returns JSON response with status of the operation.
+ * 
+ * @swagger
+ * /api/meals:
+ *   post:
+ *     summary: Save or update meal plan
+ *     description: Saves a new meal plan or updates the existing one for the current user and selected week/year.
+ *     tags: [Meals]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - meals
+ *             properties:
+ *               meals:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     day:
+ *                       type: string
+ *                     morning:
+ *                       type: string
+ *                     main:
+ *                       type: string
+ *                     evening:
+ *                       type: string
+ *     parameters:
+ *       - in: query
+ *         name: week
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Week number
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Year
+ *     responses:
+ *       200:
+ *         description: Meal plan saved or updated successfully
+ *       400:
+ *         description: Invalid input data
+ *       401:
+ *         description: Unauthorized access
+ */
+mealRoutes.post("/", authMiddleware, saveMealPlan);
 
-// 📥 GET / — Retrieves the meal plan for the current user for a specific or current week/year
-router.get("/", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user.id;
-    console.log("userId", { userId });
+/**
+ * Copies the meal plan from the current week to the next week.
+ * Allows optional overwrite of existing plans.
+ * 
+ * @param req Request object containing user ID, current week and year in query, and optional force flag in body.
+ * @param res Response object used to send the JSON response.
+ * 
+ * @returns JSON response with copy status.
+ * 
+ * @swagger
+ * /api/meals/copy:
+ *   post:
+ *     summary: Copy meal plan to next week
+ *     description: Copies the meal plan from the current week to the following week. Allows optional overwrite if a plan already exists.
+ *     tags: [Meals]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: week
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Source week
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: Source year
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               force:
+ *                 type: boolean
+ *                 description: Overwrite existing plan in the target week if true
+ *     responses:
+ *       200:
+ *         description: Meal plan copied successfully
+ *       400:
+ *         description: Copy failed due to invalid input
+ *       401:
+ *         description: Unauthorized access
+ */
+mealRoutes.post("/copy", authMiddleware, copyMealPlan);
 
-    // 🔁 Try to get week/year from query string, otherwise fallback to current
-    const week =
-      parseInt(req.query.week as string) || getCurrentWeekAndYear().week;
-    const year =
-      parseInt(req.query.year as string) || getCurrentWeekAndYear().year;
-
-    const result = await pool.query(
-      "SELECT meals,week,year FROM meal_plans WHERE user_id = $1 AND week = $2 AND year = $3",
-      [userId, week, year]
-    );
-
-    console.log("result", { res: result.rows[0] });
-
-    if (result.rows.length === 0) {
-      // 🆕 No entry found — create new meal plan from default template
-      await pool.query(
-        "INSERT INTO meal_plans (user_id, week, year, meals) VALUES ($1, $2, $3, $4)",
-        [userId, week, year, JSON.stringify(defaultMeals)]
-      );
-      res.json({ meals: defaultMeals });
-    }
-
-    // ✅ Return existing meal plan (or after insert if created above)
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error while fetching meal plan." });
-  }
-});
-
-// 💾 POST / — Saves or updates the meal plan for a given week and year
-router.post("/", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user.id;
-    const { meals } = req.body;
-    const week =
-      parseInt(req.query.week as string) || getCurrentWeekAndYear().week;
-    const year =
-      parseInt(req.query.year as string) || getCurrentWeekAndYear().year;
-
-    console.log("data", { week, year });
-
-    const existing = await pool.query(
-      "SELECT * FROM meal_plans WHERE user_id = $1 AND week = $2 AND year = $3",
-      [userId, week, year]
-    );
-
-    if (existing.rows.length > 0) {
-      // 🔄 Update existing plan
-      await pool.query(
-        "UPDATE meal_plans SET meals = $1 WHERE user_id = $2 AND week = $3 AND year = $4",
-        [meals, userId, week, year]
-      );
-    } else {
-      // ➕ Insert new plan
-      await pool.query(
-        "INSERT INTO meal_plans (user_id, week, year, meals) VALUES ($1, $2, $3, $4)",
-        [userId, week, year, meals]
-      );
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error while saving meal plan." });
-  }
-});
-
-// 📤 POST /copy — Copies meals from current week to next week, with optional overwrite
-router.post("/copy", authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user.id;
-    const currentWeek = parseInt(req.query.week as string);
-    const currentYear = parseInt(req.query.year as string);
-    const forceOverwrite = req.query.force === "true";
-
-    if (!currentWeek || !currentYear) {
-      res.status(400).json({ message: "Missing 'week' or 'year' parameter." });
-      return;
-    }
-
-    const nextWeek = currentWeek + 1;
-
-    const currentWeekData = await pool.query(
-      "SELECT meals FROM meal_plans WHERE user_id = $1 AND week = $2 AND year = $3",
-      [userId, currentWeek, currentYear]
-    );
-
-    console.log("currentWeekData", { currentWeekData });
-
-    if (currentWeekData?.rows?.length === 0) {
-      res
-        .status(404)
-        .json({ message: "No meal plan found for the selected week." });
-      return;
-    }
-
-    const mealsFromSelectedWeek = currentWeekData.rows[0].meals;
-
-    const nexttWeekData = await pool.query(
-      "SELECT meals FROM meal_plans WHERE user_id = $1 AND week = $2 AND year = $3",
-      [userId, nextWeek, currentYear]
-    );
-
-    if (nexttWeekData?.rows?.length) {
-      const nexttWeekMeals = nexttWeekData.rows[0].meals;
-      const hasNexttWeekMealsData =
-        nexttWeekMeals && Object.keys(nexttWeekMeals)?.length;
-
-      if (hasNexttWeekMealsData && !forceOverwrite) {
-        // ❌ Abort if meals exist for next week and no force overwrite allowed
-        res
-          .status(409)
-          .json({ message: "Meal plan for next week already exists." });
-        return;
-      }
-
-      // 🔁 Overwrite meals in existing plan for next week
-      await pool.query(
-        "UPDATE meal_plans SET meals = $1 WHERE user_id = $2 AND week = $3 AND year = $4",
-        [JSON.stringify(mealsFromSelectedWeek), userId, nextWeek, currentYear]
-      );
-
-      res.json({
-        success: true,
-        message: `Meal plan copied to week ${nextWeek}.`,
-      });
-      return;
-    }
-
-    // ➕ Insert meal plan for next week if it doesn't exist
-    await pool.query(
-      "INSERT INTO meal_plans (user_id, week, year, habits) VALUES ($1, $2, $3, $4)",
-      [userId, nextWeek, currentYear, JSON.stringify(mealsFromSelectedWeek)]
-    );
-
-    res.json({
-      success: true,
-      message: `Meal plan copied to week ${nextWeek}.`,
-    });
-  } catch (err) {
-    console.error("❌ Error copying meal plan:", err);
-    res
-      .status(500)
-      .json({ message: "Server error while copying meal plan." });
-  }
-});
-
-export default router;
+export { mealRoutes };

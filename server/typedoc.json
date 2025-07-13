@@ -1,0 +1,11 @@
+{
+  "entryPoints": ["server.ts", "routes", "controllers", "models", "middleware", "types"],
+  "entryPointStrategy": "expand",
+  "out": "../docs/backend",
+  "tsconfig": "tsconfig.json",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "includeVersion": true,
+  "excludeExternals": true,
+  "readme": "none"
+}

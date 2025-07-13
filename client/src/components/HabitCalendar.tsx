@@ -194,7 +194,7 @@ useEffect(() => {
     };
 
     return (
-      <TableRow ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <TableRow ref={setNodeRef} style={style} {...attributes}>
         <TableCell component="th" scope="row">
           <Box display="flex" justifyContent="space-between" alignItems="center">
             <IconButton {...listeners} size="small">
@@ -210,7 +210,7 @@ useEffect(() => {
           <TableCell key={key} align="center">
             <Checkbox
               checked={!!habits[habit]?.[key]}
-              onChange={() => handleToggle(habit, key)}
+              onChange={() =>handleToggle(habit, key)}
               color="primary"
             />
           </TableCell>

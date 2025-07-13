@@ -18,7 +18,7 @@ import {
 import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import MealCalendar from "../components/mealsComponents/MealCalendar";
+import MealCalendar from "../components/MealCalendar";
 import ChatGPTAssistant from "../components/ChatGPTAssistant";
 import serverUrl from "../config";
 
@@ -56,15 +56,48 @@ const Diet: React.FC = () => {
     Piš v češtině.
     `);
      
-  const [suggestionPrompt, setSuggestionPrompt] = useState<string>(
-    `Jsi expert na výživu. Na základě týdenního jídelníčku a parametrů uživatele (výška, váha, cíl) vytvoř UPRAVENÝ jídelníček tak, že:
-  1. Zachováš existující jídla.
-  2. Doplníš chybějící jídla podle nutričních potřeb uživatele.
-  3. Nepoužíváš prázdné nebo bezvýznamné hodnoty.
-  4. Výstup vrátíš jako validní JSON formát.
-  
-  Dny převeď z angličtiny do češtiny.`
-  );
+const [suggestionPrompt, setSuggestionPrompt] = useState<string>(() => {
+  const userParamsExist = !!userSetting;
+  const basePrompt = `Jsi expert na výživu. Na základě týdenního jídelníčku${userParamsExist ? " a parametrů uživatele" : ""} vytvoř UPRAVENÝ jídelníček tak, že:
+
+1. Zachováš všechna již vyplněná jídla – NESMÍŠ je měnit.
+2. Doplníš pouze chybějící jídla tak, aby byl plán kompletní a vyvážený.
+3. **Nepoužiješ žádné prázdné, zástupné nebo bezvýznamné hodnoty** – jako "-", "...", "N/A", "nic", "žádné", atd.
+4. Každé jídlo musí být konkrétní a běžné – např. "ovesná kaše s ovocem", "kuřecí prsa s rýží", "tvaroh s ořechy".
+5. Dny převeď z angličtiny do češtiny (např. "Monday" → "Pondělí").
+6. Výstup vrať jako **validní JSON bez komentářů** ve formátu:
+
+{
+  "Pondělí": {
+    "snidane": "...",
+    "svacina": "...",
+    "obed": "...",
+    "svacina_odpoledne": "...",
+    "vecere": "..."
+  },
+  ...
+}
+
+Používej přesně tyto klíče (bez diakritiky): snidane, svacina, obed, svacina_odpoledne, vecere
+`;
+
+  const params = userParamsExist
+    ? `
+
+Parametry uživatele:
+- Výška: ${userSetting.height} cm
+- Váha: ${userSetting.weight} kg
+- Datum narození: ${userSetting.birthDate}
+- Pohlaví: ${userSetting.gender}
+- Cílová váha: ${userSetting.targetWeight} kg
+- Cíl: ${userSetting.mainGoal}
+`
+    : "";
+
+  return basePrompt + params;
+});
+
+
 
   const mealCalendarRef = useRef<any>(null);
 

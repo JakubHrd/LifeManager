@@ -1,35 +1,47 @@
 import express, { Application } from "express";
+import { setupSwagger } from "./swagger";
 import cors from "cors";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth"; // ✅ Správný import
-import dashboardRoutes from "./routes/dashboard"; // Import dashboardu
-import userRoutes from "./routes/user";
-import mealRoutes from "./routes/mealRoutes";
-import trainingRoutes from "./routes/trainingRoutes";
-import chatGPTRouter from "./routes/chatGPT";
-import habitRoutes from "./routes/habits";
-import userSettingRoute from "./routes/userSetting";
+import {authRoutes} from "./routes/authRoutes"; // Import authentication routes
+import dashboardRoutes from "./routes/dashboardRoutes"; // Import dashboard routes
+import userRoutes from "./routes/userRoutes"; // Import user routes
+import {mealRoutes} from "./routes/mealRoutes"; // Import meal routes
+import trainingRoutes from "./routes/trainingRoutes"; // Import training routes
+import chatGPTRouter from "./routes/chatgptRoutes"; // Import ChatGPT routes
+import habitRoutes from "./routes/habitRoutes"; // Import habit routes
+import userSettingRoute from "./routes/userSettingRoutes"; // Import user setting routes
 
-
-
-
-dotenv.config();
+dotenv.config(); // Load environment variables from .env file
 
 const app: Application = express();
 
-app.use(cors());
-app.use(express.json());
+/**
+ * Setup Swagger UI na /api-docs
+ */
+setupSwagger(app);
 
-// ✅ Musí obsahovat prefix `/api/auth`
-app.use("/api/auth", authRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/meals", mealRoutes);
-app.use("/api/trainings", trainingRoutes);
-app.use("/api/chat", chatGPTRouter);
-app.use("/api/habits", habitRoutes);
-app.use("/api/userSetting", userSettingRoute);
+/**
+ * Apply middleware
+ */
+app.use(cors()); // Enable Cross-Origin Resource Sharing
+app.use(express.json()); // Parse incoming JSON requests
 
+/**
+ * Define routes with prefixes
+ */
+app.use("/api/auth", authRoutes); // Authentication routes
+app.use("/api/dashboard", dashboardRoutes); // Dashboard routes
+app.use("/api/user", userRoutes); // User routes
+app.use("/api/meals", mealRoutes); // Meal routes
+app.use("/api/trainings", trainingRoutes); // Training routes
+app.use("/api/chat", chatGPTRouter); // ChatGPT routes
+app.use("/api/habits", habitRoutes); // Habit routes
+app.use("/api/userSetting", userSettingRoute); // User setting routes
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server běží na portu ${PORT}`));
+
+/**
+ * Start server
+ */
+app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+

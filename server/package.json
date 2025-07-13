@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "docs": "typedoc",
     "dev": "nodemon server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "docs": "typedoc --out ../docs/backend src"
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -21,7 +21,9 @@
     "i18next": "^24.2.2",
     "jsonwebtoken": "^9.0.2",
     "moment": "^2.30.1",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -30,8 +32,11 @@
     "@types/jsonwebtoken": "^9.0.8",
     "@types/node": "^22.10.10",
     "@types/pg": "^8.11.11",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
+    "typedoc": "^0.28.5",
     "typescript": "^5.7.3"
   }
 }

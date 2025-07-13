@@ -2,49 +2,46 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
-  Toolbar,
-  CssBaseline,
   Container,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Typography,
   Grid,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
 } from "@mui/material";
-import Sidebar from "../components/Sidebar";
-import { Outlet } from "react-router-dom";
-import { useAuthContext } from "../context/AuthContext";
 import moment from "moment";
-import serverUrl from '../config';
-
+import { useAuthContext } from "../context/AuthContext";
+import serverUrl from "../config";
 
 const MainDashboard: React.FC = () => {
-  // Získání informace o autentizaci uživatele
   const { isAuthenticated } = useAuthContext();
 
-  // Aktuální týden a rok pro dotazování na data
   const [week, setWeek] = useState<number>(moment().isoWeek());
   const [year, setYear] = useState<number>(moment().year());
 
-  /** ---------- JÍDLA ---------- */
-
-  // Typ pro denní jídla
   type MealsForDay = {
     [meal: string]: { description: string; eaten: boolean };
   };
-
-  // Typ pro celý týden jídel
   type MealsForWeek = {
     [day: string]: MealsForDay;
   };
 
+  type TrainingsForDay = {
+    [training: string]: { description: string; done: boolean };
+  };
+  type TrainingsForWeek = {
+    [day: string]: TrainingsForDay;
+  };
+
   const [weekMeals, setWeekMeals] = useState<MealsForWeek>({});
   const [todayMeals, setTodayMeals] = useState<MealsForDay>({});
+  const [weekTrainings, setWeekTrainings] = useState<TrainingsForWeek>({});
+  const [todayTrainings, setTodayTrainings] = useState<TrainingsForDay>({});
+  const [habits, setHabits] = useState<Record<string, Record<string, boolean>>>({});
 
-  // Pořadí a překlady typů jídel
   const orderedMealKeys = ["breakfast", "snack", "lunch", "snack2", "dinner"];
   const mealLabels: Record<string, string> = {
     breakfast: "Snídaně",
@@ -54,20 +51,6 @@ const MainDashboard: React.FC = () => {
     dinner: "Večeře",
   };
 
-  /** ---------- TRÉNINK ---------- */
-
-  // Typy pro denní trénink a týdenní plán
-  type TrainingsForDay = {
-    [training: string]: { description: string; done: boolean };
-  };
-  type TrainingsForWeek = {
-    [day: string]: TrainingsForDay;
-  };
-
-  const [weekTrainings, setWeekTrainings] = useState<TrainingsForWeek>({});
-  const [todayTrainings, setTodayTrainings] = useState<TrainingsForDay>({});
-
-  // Pořadí a překlady tréninkových částí
   const orderedTrainingKeys = ["morning", "main", "evening"];
   const trainingLabels: Record<string, string> = {
     morning: "Ranní část",
@@ -75,15 +58,6 @@ const MainDashboard: React.FC = () => {
     evening: "Večerní protažení",
   };
 
-  /** ---------- NÁVYKY ---------- */
-
-  // Struktura návyků – název a případný stav
-  const [habits, setHabits] = useState<Record<string, Record<string, boolean>>>({});
-
-  /**
-   * Obecná funkce pro nastavení dat podle aktuálního dne.
-   * Používá se jak pro jídelníček, tak trénink.
-   */
   function displaySingleDayData<T>(
     weekData: Record<string, T>,
     setter: React.Dispatch<React.SetStateAction<T>>,
@@ -91,7 +65,6 @@ const MainDashboard: React.FC = () => {
   ) {
     const day = moment().format("dddd");
     const todayData = weekData[day];
-
     if (todayData) {
       setter(todayData);
     } else {
@@ -99,10 +72,6 @@ const MainDashboard: React.FC = () => {
     }
   }
 
-  /**
-   * useEffect pro načtení jídelníčku, tréninků a návyků z API
-   * při přihlášení uživatele.
-   */
   useEffect(() => {
     async function getUserData<T>(
       endpoint: string,
@@ -130,10 +99,6 @@ const MainDashboard: React.FC = () => {
     getUserData("habits", "habits", setHabits);
   }, [isAuthenticated]);
 
-  /**
-   * useEffect pro rozdělení jídelníčku a tréninku
-   * na základě aktuálního dne.
-   */
   useEffect(() => {
     if (weekMeals) {
       displaySingleDayData(weekMeals, setTodayMeals, "jídelníček");
@@ -143,12 +108,65 @@ const MainDashboard: React.FC = () => {
     }
   }, [weekMeals, weekTrainings]);
 
-  /** ---------- VÝSTUP ---------- */
+  const handleToggleMealEaten = async (mealKey: string) => {
+    const updatedMeal = {
+      ...todayMeals[mealKey],
+      eaten: !todayMeals[mealKey]?.eaten,
+    };
+    const updated = {
+      ...todayMeals,
+      [mealKey]: updatedMeal,
+    };
+    setTodayMeals(updated);
+    const token = localStorage.getItem("token");
+    const currentDay = moment().format("dddd");
+    await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        meals: {
+          ...weekMeals,
+          [currentDay]: updated,
+        },
+      }),
+    });
+    setWeekMeals((prev) => ({ ...prev, [currentDay]: updated }));
+  };
+
+  const handleToggleTrainingDone = async (partKey: string) => {
+    const updatedPart = {
+      ...todayTrainings[partKey],
+      done: !todayTrainings[partKey]?.done,
+    };
+    const updated = {
+      ...todayTrainings,
+      [partKey]: updatedPart,
+    };
+    setTodayTrainings(updated);
+    const token = localStorage.getItem("token");
+    const currentDay = moment().format("dddd");
+    await fetch(`${serverUrl}/api/trainings?week=${week}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        trainings: {
+          ...weekTrainings,
+          [currentDay]: updated,
+        },
+      }),
+    });
+    setWeekTrainings((prev) => ({ ...prev, [currentDay]: updated }));
+  };
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4 }}>
       <Grid container spacing={4}>
-        {/* Jídelníček */}
         <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -169,16 +187,16 @@ const MainDashboard: React.FC = () => {
                   {orderedMealKeys.map((mealKey) => {
                     const meal = todayMeals[mealKey];
                     return (
-                      <TableCell key={mealKey} align="center">
+                      <TableCell
+                        key={mealKey}
+                        align="center"
+                        onClick={() => handleToggleMealEaten(mealKey)}
+                        sx={{ cursor: "pointer" }}
+                      >
                         {meal ? (
                           <>
-                            <Typography variant="body2">
-                              {meal.description}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Typography variant="body2">{meal.description}</Typography>
+                            <Typography variant="caption" color="text.secondary">
                               {meal.eaten ? "✅" : "❌"}
                             </Typography>
                           </>
@@ -196,7 +214,6 @@ const MainDashboard: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Trénink */}
         <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
@@ -217,16 +234,18 @@ const MainDashboard: React.FC = () => {
                   {orderedTrainingKeys.map((partKey) => {
                     const part = todayTrainings[partKey];
                     return (
-                      <TableCell key={partKey} align="center">
+                      <TableCell
+                        key={partKey}
+                        align="center"
+                        onClick={() => handleToggleTrainingDone(partKey)}
+                        sx={{ cursor: "pointer" }}
+                      >
                         {part ? (
                           <>
                             <Typography variant="body2">
                               {part.description || "Bez zadání"}
                             </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
+                            <Typography variant="caption" color="text.secondary">
                               {part.done ? "✅ Hotovo" : "❌ Nehotovo"}
                             </Typography>
                           </>
@@ -244,7 +263,6 @@ const MainDashboard: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Návyky */}
         <Grid item xs={12}>
           <Paper elevation={3} sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
