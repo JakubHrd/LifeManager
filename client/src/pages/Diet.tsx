@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Container,
   Typography,
@@ -22,82 +22,15 @@ import MealCalendar from "../components/MealCalendar";
 import ChatGPTAssistant from "../components/ChatGPTAssistant";
 import serverUrl from "../config";
 
-
-
 const Diet: React.FC = () => {
   const [meals, setMeals] = useState<any>({});
   const [evaluation, setEvaluation] = useState<string>("");
   const [suggestion, setSuggestion] = useState<any>(null);
   const [week, setWeek] = useState<number>(moment().isoWeek());
   const [year, setYear] = useState<number>(moment().year());
+
   const [userSetting, setUserSetting] = useState<any>(null);
   const [loadingUserSetting, setLoadingUserSetting] = useState<boolean>(true);
-  const [evaluationPrompt, setEvaluationPrompt] = useState<string>(`
-    Jsi certifikovaný odborník na výživu. Vyhodnoť následující týdenní jídelníček s ohledem na tyto parametry uživatele:
-    
-    - Výška: {height_cm} cm
-    - Váha: {weight_kg} kg
-    - Datum narození: {birth_date} (věk si dopočítej)
-    - Pohlaví: {gender}
-    - Cílová váha: {target_weight_kg} kg
-    - Hlavní cíl: {main_goal} (např. zhubnout, udržet váhu, nabrat svalovou hmotu, zlepšit zdraví)
-    
-    Tvým úkolem je:
-    1. Posoudit, zda jídelníček odpovídá energetickým a nutričním potřebám uživatele vzhledem k jeho cíli.
-    2. Vyhodnotit poměr bílkovin, sacharidů a tuků.
-    3. Upozornit na možné nedostatky nebo přebytky (např. málo bílkovin, příliš mnoho sacharidů, nedostatek vlákniny apod.).
-    4. Doporučit konkrétní zlepšení jídelníčku s ohledem na cíl (např. přidat více bílkovin, omezit cukry, zařadit více zeleniny).
-    
-    Odpověď strukturovaně rozděl na tyto části:
-    - Celkové hodnocení
-    - Identifikované nedostatky / přebytky
-    - Doporučené úpravy jídelníčku
-    
-    Piš v češtině.
-    `);
-     
-const [suggestionPrompt, setSuggestionPrompt] = useState<string>(() => {
-  const userParamsExist = !!userSetting;
-  const basePrompt = `Jsi expert na výživu. Na základě týdenního jídelníčku${userParamsExist ? " a parametrů uživatele" : ""} vytvoř UPRAVENÝ jídelníček tak, že:
-
-1. Zachováš všechna již vyplněná jídla – NESMÍŠ je měnit.
-2. Doplníš pouze chybějící jídla tak, aby byl plán kompletní a vyvážený.
-3. **Nepoužiješ žádné prázdné, zástupné nebo bezvýznamné hodnoty** – jako "-", "...", "N/A", "nic", "žádné", atd.
-4. Každé jídlo musí být konkrétní a běžné – např. "ovesná kaše s ovocem", "kuřecí prsa s rýží", "tvaroh s ořechy".
-5. Dny převeď z angličtiny do češtiny (např. "Monday" → "Pondělí").
-6. Výstup vrať jako **validní JSON bez komentářů** ve formátu:
-
-{
-  "Pondělí": {
-    "snidane": "...",
-    "svacina": "...",
-    "obed": "...",
-    "svacina_odpoledne": "...",
-    "vecere": "..."
-  },
-  ...
-}
-
-Používej přesně tyto klíče (bez diakritiky): snidane, svacina, obed, svacina_odpoledne, vecere
-`;
-
-  const params = userParamsExist
-    ? `
-
-Parametry uživatele:
-- Výška: ${userSetting.height} cm
-- Váha: ${userSetting.weight} kg
-- Datum narození: ${userSetting.birthDate}
-- Pohlaví: ${userSetting.gender}
-- Cílová váha: ${userSetting.targetWeight} kg
-- Cíl: ${userSetting.mainGoal}
-`
-    : "";
-
-  return basePrompt + params;
-});
-
-
 
   const mealCalendarRef = useRef<any>(null);
 
@@ -112,12 +45,9 @@ Parametry uživatele:
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${serverUrl}/api/userSetting`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        console.log('res data userSetting',{data});
         setUserSetting(data);
       } catch (error) {
         console.error("Chyba při načítání uživatelského nastavení:", error);
@@ -125,10 +55,78 @@ Parametry uživatele:
         setLoadingUserSetting(false);
       }
     };
-
     fetchUserSetting();
-    console.log('userSetting',{userSetting});
   }, []);
+
+  // --- Prompty: přepočítávají se, když dorazí userSetting ---
+  const evaluationPrompt = useMemo(() => {
+    const h = userSetting?.height ?? "{height_cm}";
+    const w = userSetting?.weight ?? "{weight_kg}";
+    const bd = userSetting?.birthDate ?? "{birth_date}";
+    const g = userSetting?.gender ?? "{gender}";
+    const tw = userSetting?.targetWeight ?? "{target_weight_kg}";
+    const goal = userSetting?.mainGoal ?? "{main_goal}";
+
+    return `Jsi certifikovaný odborník na výživu. Vyhodnoť následující týdenní jídelníček s ohledem na tyto parametry uživatele:
+
+- Výška: ${h} cm
+- Váha: ${w} kg
+- Datum narození: ${bd} (věk si dopočítej)
+- Pohlaví: ${g}
+- Cílová váha: ${tw} kg
+- Hlavní cíl: ${goal}
+
+Tvým úkolem je:
+1. Posoudit, zda jídelníček odpovídá energetickým a nutričním potřebám uživatele vzhledem k jeho cíli.
+2. Vyhodnotit poměr bílkovin, sacharidů a tuků.
+3. Upozornit na možné nedostatky nebo přebytky (např. málo bílkovin, příliš mnoho sacharidů, nedostatek vlákniny apod.).
+4. Doporučit konkrétní zlepšení jídelníčku s ohledem na cíl (např. přidat více bílkovin, omezit cukry, zařadit více zeleniny).
+
+Odpověď rozděl na části:
+- Celkové hodnocení
+- Nedostatky / přebytky
+- Doporučené úpravy
+
+Piš v češtině.`;
+  }, [userSetting]);
+
+  const suggestionPrompt = useMemo(() => {
+    const params = userSetting
+      ? `
+
+Parametry uživatele:
+- Výška: ${userSetting.height} cm
+- Váha: ${userSetting.weight} kg
+- Datum narození: ${userSetting.birthDate}
+- Pohlaví: ${userSetting.gender}
+- Cílová váha: ${userSetting.targetWeight} kg
+- Cíl: ${userSetting.mainGoal}`
+      : "";
+
+    return `Jsi expert na výživu. Na základě týdenního jídelníčku${
+      userSetting ? " a parametrů uživatele" : ""
+    } vytvoř UPRAVENÝ jídelníček tak, že:
+
+1. Zachováš všechna již vyplněná jídla – NESMÍŠ je měnit.
+2. Doplníš pouze chybějící jídla tak, aby byl plán kompletní a vyvážený.
+3. Nepoužiješ žádné prázdné/zástupné hodnoty ("-", "...", "N/A", "nic" atd.).
+4. Každé jídlo musí být konkrétní a běžné – např. "ovesná kaše s ovocem", "kuřecí prsa s rýží", "tvaroh s ořechy".
+5. Dny převeď do češtiny (např. "Monday" → "Pondělí").
+6. Výstup vrať jako VALIDNÍ JSON **bez komentářů** ve formátu:
+
+{
+  "Pondělí": {
+    "snidane": "...",
+    "svacina": "...",
+    "obed": "...",
+    "svacina_odpoledne": "...",
+    "vecere": "..."
+  },
+  ...
+}
+
+Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, svacina_odpoledne, vecere${params}`;
+  }, [userSetting]);
 
   if (loadingUserSetting) {
     return (
@@ -181,7 +179,6 @@ Parametry uživatele:
         </Typography>
 
         <Box display="flex" flexDirection="column" gap={4} mt={2}>
-          
           {/* Vyhodnocení jídelníčku */}
           <Box>
             <Typography variant="h6" gutterBottom>
@@ -193,7 +190,8 @@ Parametry uživatele:
               fullWidth
               label="Instrukce pro vyhodnocení jídelníčku"
               value={evaluationPrompt}
-              onChange={(e) => setEvaluationPrompt(e.target.value)}
+              onChange={() => {}}
+              disabled
               sx={{ mb: 2 }}
             />
             <ChatGPTAssistant
@@ -206,6 +204,7 @@ Parametry uživatele:
                 if (typeof result === "string") {
                   setEvaluation(result);
                 } else {
+                  // objekt -> hezky vypsat
                   setEvaluation(JSON.stringify(result, null, 2));
                 }
               }}
@@ -221,9 +220,10 @@ Parametry uživatele:
               multiline
               rows={6}
               fullWidth
-              label="Instrukce pro návrh nového jídelníčku"
+              label="Instrukce pro návrh jídelníčku"
               value={suggestionPrompt}
-              onChange={(e) => setSuggestionPrompt(e.target.value)}
+              onChange={() => {}}
+              disabled
               sx={{ mb: 2 }}
             />
             <ChatGPTAssistant
@@ -231,17 +231,25 @@ Parametry uživatele:
               data={meals}
               userSetting={userSetting}
               systemPrompt={suggestionPrompt}
-              label="Navrhnout vylepšený jídelníček"
+              label="Navrhnout jídelníček"
               onResponse={(result) => {
-                if (typeof result === "object") {
+                // Výsledek může být objekt nebo text s JSONem → ChatGPTAssistant už se snaží parsovat.
+                if (typeof result === "object" && result) {
                   setSuggestion(result);
+                } else if (typeof result === "string") {
+                  // poslední pojistka: zkus vyparsovat tady
+                  try {
+                    const obj = JSON.parse(result);
+                    setSuggestion(obj);
+                  } catch {
+                    // když je to fakt jen text, zobrazíme ho v hodnocení
+                    setEvaluation(String(result));
+                  }
                 }
               }}
             />
           </Box>
-
         </Box>
-
 
         {/* Výstup vyhodnocení */}
         {evaluation && (
@@ -263,7 +271,7 @@ Parametry uživatele:
                 ✨ Návrh nového jídelníčku
               </Typography>
               <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table>
+                <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>Den</TableCell>
@@ -275,14 +283,14 @@ Parametry uživatele:
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {Object.entries(suggestion).map(([day, meals]: any) => (
+                    {Object.entries(suggestion).map(([day, mealsObj]: any) => (
                       <TableRow key={day}>
                         <TableCell>{day}</TableCell>
-                        <TableCell>{meals.snidane || "-"}</TableCell>
-                        <TableCell>{meals.svacina || "-"}</TableCell>
-                        <TableCell>{meals.obed || "-"}</TableCell>
-                        <TableCell>{meals.svacina_odpoledne || "-"}</TableCell>
-                        <TableCell>{meals.vecere || "-"}</TableCell>
+                        <TableCell>{mealsObj.snidane || "-"}</TableCell>
+                        <TableCell>{mealsObj.svacina || "-"}</TableCell>
+                        <TableCell>{mealsObj.obed || "-"}</TableCell>
+                        <TableCell>{mealsObj.svacina_odpoledne || "-"}</TableCell>
+                        <TableCell>{mealsObj.vecere || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -290,7 +298,6 @@ Parametry uživatele:
               </TableContainer>
             </Paper>
 
-            {/* Tlačítko na převzetí návrhu */}
             <Box display="flex" justifyContent="flex-end" mt={3}>
               <Button
                 variant="contained"

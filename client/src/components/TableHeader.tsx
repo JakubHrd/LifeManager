@@ -8,9 +8,13 @@ interface TableHeaderProps {
 
 const TableHeader: React.FC<TableHeaderProps> = ({ sectionKeys, translationsMap }) => (
   <TableRow sx={{ backgroundColor: "primary.main" }}>
-    <TableCell sx={{ color: "white", fontWeight: "bold" }}></TableCell>
+    <TableCell sx={{ color: "white", fontWeight: "bold" }} />
     {sectionKeys.map((key) => (
-      <TableCell key={key} align="center" sx={{ color: "white", fontWeight: "bold" }}>
+      <TableCell
+        key={key}
+        align="center"
+        sx={{ color: "white", fontWeight: "bold", whiteSpace: "nowrap" }}
+      >
         {translationsMap[key]?.cs || key}
       </TableCell>
     ))}

@@ -13,7 +13,6 @@ import {
   TableCell,
   TableBody,
   TextField,
-  CircularProgress,
 } from "@mui/material";
 import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -27,7 +26,6 @@ const Training: React.FC = () => {
   const [suggestion, setSuggestion] = useState<any>(null);
   const [week, setWeek] = useState<number>(moment().isoWeek());
   const [year, setYear] = useState<number>(moment().year());
-  const [loading, setLoading] = useState(false);
   const trainingCalendarRef = useRef<any>(null);
 
   const handleWeekChange = (change: number) => {
@@ -55,14 +53,11 @@ Buď konkrétní a praktický. Vyhodnocení strukturovaně seřaď podle dní (p
 2. Doplň pouze chybějící části tak, aby byl plán vyvážený – kombinuj sílu, kardio a regeneraci.
 3. Nepoužívej výplňové znaky jako '-', '...', 'N/A'.
 4. Pokud není aktivita, doplň např. "regenerace", "protažení", "odpočinek", "lehký běh", atd.
-5. Výstup vrať jako validní JSON ve formátu:
+5. Výstup vrať jako validní JSON (bez komentářů) ve formátu:
+
 {
-  "Pondělí": {
-    "main": "...",
-    "evening": "...",
-    "morning": "..."
-  },
-  "Úterý": { ... },
+  "Pondělí": { "morning": "...", "main": "...", "evening": "..." },
+  "Úterý":   { "morning": "...", "main": "...", "evening": "..." },
   ...
 }`;
 
@@ -186,7 +181,7 @@ Buď konkrétní a praktický. Vyhodnocení strukturovaně seřaď podle dní (p
                 ✨ Návrh nového tréninku
               </Typography>
               <TableContainer component={Paper} sx={{ mt: 2 }}>
-                <Table>
+                <Table size="small">
                   <TableHead>
                     <TableRow>
                       <TableCell>Den</TableCell>
@@ -199,9 +194,9 @@ Buď konkrétní a praktický. Vyhodnocení strukturovaně seřaď podle dní (p
                     {Object.entries(suggestion).map(([day, dayTrainings]: any) => (
                       <TableRow key={day}>
                         <TableCell>{day}</TableCell>
-                        <TableCell>{dayTrainings.morning || "-"}</TableCell>
-                        <TableCell>{dayTrainings.main || "-"}</TableCell>
-                        <TableCell>{dayTrainings.evening || "-"}</TableCell>
+                        <TableCell>{(dayTrainings as any).morning || "-"}</TableCell>
+                        <TableCell>{(dayTrainings as any).main || "-"}</TableCell>
+                        <TableCell>{(dayTrainings as any).evening || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

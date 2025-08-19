@@ -1,21 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Toolbar, CssBaseline } from "@mui/material";
-import Sidebar from "../components/Sidebar";
+import React from "react";
+import { Box, CssBaseline } from "@mui/material";
 import { Outlet } from "react-router-dom";
-import { useAuthContext } from "../context/AuthContext";
-import moment from "moment";
-
 
 const Dashboard: React.FC = () => {
   return (
-    <Box sx={{ display: "flex", width: "100vw", height: "100vh" }}>
+    <Box sx={{ width: "100vw", height: "100vh" }}>
       <CssBaseline />
-      {/* Levý Sidebar */}
-      <Sidebar />
-
       {/* Hlavní obsah */}
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <Outlet /> {/* Dynamický obsah sekcí (Finance, Diet, ...) */}
+      <Box component="main" sx={{ p: { xs: 2, md: 3 } }}>
+        <Outlet /> {/* Dynamický obsah sekcí (Finance, Diet, Training, Habits...) */}
       </Box>
     </Box>
   );

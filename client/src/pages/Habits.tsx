@@ -6,11 +6,10 @@ import {
   Box,
   Divider,
 } from "@mui/material";
-import moment from 'moment';
+import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import HabitCalendar from "../components/HabitCalendar";
-
 
 const Habits: React.FC = () => {
   const [week, setWeek] = useState<number>(moment().isoWeek());
@@ -23,7 +22,7 @@ const Habits: React.FC = () => {
   return (
     <Container maxWidth="xl">
       <Box component="section" sx={{ p: 2 }}>
-        <Typography variant="h4" gutterBottom align="center">
+        <Typography variant="h4" gutterBottom align="center" fontWeight={800}>
           Habit Tracker – Týden {week}, Rok {year}
         </Typography>
 

@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   forwardRef,
+  useRef,
 } from "react";
 import {
   Box,
@@ -23,13 +24,14 @@ import {
 
 import { useAuthContext } from "../context/AuthContext";
 import { MealsByDay } from "../types/mealTypes";
-import TableHeader from "./TableHeader"; // cesta podle projektu
+import TableHeader from "./TableHeader";
 import TableRowGeneric from "./TableRowGeneric";
 import { translations } from "../utils/translations";
 import serverUrl from "../config";
 
-// Konstanty pro dny a typy jídel
+// Backendové klíče dnů
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+// Backendové klíče jídel
 const mealsDefault = ["breakfast", "snack", "lunch", "snack2", "dinner"];
 
 interface MealCalendarProps {
@@ -38,13 +40,14 @@ interface MealCalendarProps {
   onMealsChange?: (data: MealsByDay) => void;
 }
 
-// Komponenta s refem pro rodiče (např. možnost spustit applySuggestion)
+// forwardRef – rodič může volat applySuggestion / getMeals
 const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProps, ref) => {
   const { isAuthenticated } = useAuthContext();
 
   const [meals, setMeals] = useState<MealsByDay>({});
   const [error, setError] = useState<string | null>(null);
-const [editingCell, setEditingCell] = useState<{ day: string; section: string } | null>(null);
+  const [editingCell, setEditingCell] = useState<{ day: string; section: string } | null>(null);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -53,18 +56,20 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingCopy, setPendingCopy] = useState(false);
 
-  // Poskytujeme rodiči možnost použít applySuggestion a získat aktuální meals
+  // ochrana proti závodům fetchů
+  const fetchSeq = useRef(0);
+
   useImperativeHandle(ref, () => ({
     getMeals: () => meals,
     applySuggestion: (suggestion: any) => {
       const dayMap: Record<string, string> = {
-        Pondělí: "Monday",
-        Úterý: "Tuesday",
-        Středa: "Wednesday",
-        Čtvrtek: "Thursday",
-        Pátek: "Friday",
-        Sobota: "Saturday",
-        Neděle: "Sunday",
+        "Pondělí": "Monday",
+        "Úterý": "Tuesday",
+        "Středa": "Wednesday",
+        "Čtvrtek": "Thursday",
+        "Pátek": "Friday",
+        "Sobota": "Saturday",
+        "Neděle": "Sunday",
       };
       const mealMap: Record<string, string> = {
         snidane: "breakfast",
@@ -75,54 +80,60 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
       };
 
       const result: MealsByDay = {};
-
       Object.entries(suggestion).forEach(([dayCz, mealData]) => {
-        const day = dayMap[dayCz] || dayCz;
+        const day = dayMap[dayCz] || (dayCz as string);
         result[day] = {};
 
-        Object.entries(mealData as Record<string, string | null>).forEach(
-          ([mealCz, description]) => {
-            const meal = mealMap[mealCz] || mealCz;
-            result[day][meal] = {
-              description: String(description ?? ""),
-              eaten: false,
-            };
-          }
-        );
+        Object.entries(mealData as Record<string, string | null>).forEach(([mealCz, description]) => {
+          const mealKey = mealMap[mealCz] || mealCz;
+          result[day][mealKey] = {
+            description: String(description ?? ""),
+            // zachovej případný existující eaten flag
+            eaten: Boolean(meals[day]?.[mealKey]?.eaten),
+          };
+        });
       });
 
       setMeals(result);
       onMealsChange?.(result);
+      setSnackbar({ open: true, message: "Návrh vložen do tabulky (zatím neuložen).", severity: "success" });
     },
   }));
 
-  // Načítání dat z API při změně týdne/roku
+  // Načtení jídel pro týden/rok
   useEffect(() => {
-    async function fetchMeals() {
-      if (!isAuthenticated) return;
+    if (!isAuthenticated) return;
+
+    const mySeq = ++fetchSeq.current;
+
+    (async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(
-          `${serverUrl}/api/meals?week=${week}&year=${year}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
+        const res = await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!res.ok) throw new Error("Chyba při načítání jídelníčku");
-
         const data = await res.json();
-        setMeals(data.meals || {});
-        onMealsChange?.(data.meals || {});
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Neznámá chyba");
-      }
-    }
 
-    fetchMeals();
+        // nastav jen pokud je to poslední (aktuální) request
+        if (mySeq === fetchSeq.current) {
+          const incoming = data.meals || {};
+          setMeals(incoming);
+          onMealsChange?.(incoming);
+          setError(null);
+        }
+      } catch (err) {
+        if (mySeq === fetchSeq.current) {
+          setError(err instanceof Error ? err.message : "Neznámá chyba");
+        }
+      }
+    })();
+
+    // DŮLEŽITÉ: nezahrnuj `onMealsChange` do dependency array → jinak se to přerenderuje při každé změně reference
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, week, year]);
 
-  // Přepínání stavu "snězeno" pro dané jídlo
+  // Toggle snědeno
   const toggleCompletion = async (day: string, meal: string) => {
     const updated = {
       ...meals,
@@ -134,25 +145,21 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
         },
       },
     };
-
     setMeals(updated);
     onMealsChange?.(updated);
 
     const token = localStorage.getItem("token");
-    await fetch(
-      `${serverUrl}/api/meals?week=${week}&year=${year}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ meals: updated }),
-      }
-    );
+    await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ meals: updated }),
+    });
   };
 
-  // Změna textového popisu jídla
+  // Změna popisu
   const handleDescriptionChange = (day: string, meal: string, val: string) => {
     const updated = {
       ...meals,
@@ -168,32 +175,27 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
     onMealsChange?.(updated);
   };
 
-  // Uložení aktuálního plánu do databáze
+  // Uložení aktuálního plánu
   const savePlan = async () => {
     const token = localStorage.getItem("token");
-    await fetch(
-      `${serverUrl}/api/meals?week=${week}&year=${year}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ meals }),
-      }
-    );
+    await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ meals }),
+    });
+    setSnackbar({ open: true, message: "Jídelníček uložen.", severity: "success" });
   };
 
-  // Zkopírování plánu do následujícího týdne
+  // Kopie do dalšího týdne
   const copyMealsToNextWeek = async () => {
     const token = localStorage.getItem("token");
-    const res = await fetch(
-      `${serverUrl}/api/meals/copy?week=${week}&year=${year}`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    const res = await fetch(`${serverUrl}/api/meals/copy?week=${week}&year=${year}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
     if (res.status === 409) {
       setConfirmDialogOpen(true);
@@ -205,20 +207,14 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
     setSnackbar({ open: true, message: result.message, severity: "success" });
   };
 
-  // Potvrzení přepsání jídelníčku při kopírování
   const handleConfirmOverwrite = async () => {
     setConfirmDialogOpen(false);
     if (!pendingCopy) return;
-
     const token = localStorage.getItem("token");
-    const res = await fetch(
-      `${serverUrl}/api/meals/copy?week=${week}&year=${year}&force=true`,
-      {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
+    const res = await fetch(`${serverUrl}/api/meals/copy?week=${week}&year=${year}&force=true`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
     const result = await res.json();
     setSnackbar({ open: true, message: result.message, severity: "success" });
     setPendingCopy(false);
@@ -226,22 +222,21 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
 
   return (
     <Box>
-      {/* Zobrazení případné chyby */}
       {error && (
-        <Alert severity="error" variant="outlined">
+        <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
           ⚠️ {error}
         </Alert>
       )}
 
-      {/* Tabulka s jídelníčkem */}
-      <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2, boxShadow: 3 }}>
-        <Table>
+      <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2, boxShadow: 3, overflowX: "auto" }}>
+        <Table size="small">
           <TableHead>
             <TableHeader sectionKeys={mealsDefault} translationsMap={translations} />
           </TableHead>
           <TableBody>
             {days.map((day) => (
               <TableRowGeneric
+                key={day}
                 day={day}
                 sectionKeys={mealsDefault}
                 data={meals}
@@ -253,25 +248,25 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
                   setEditingCell(null);
                   savePlan();
                 }}
-                getDescription={(val) => val?.description || ""}
-                getDone={(val) => val?.eaten || false}
+                getDescription={(val) => (val?.description as string) || ""}
+                getDone={(val) => Boolean(val?.eaten)}
                 translationsMap={translations}
                 itemKey="meals"
               />
-
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* Tlačítko pro kopírování do dalšího týdne */}
-      <Box mt={4} display="flex" justifyContent="center">
+      <Box mt={3} display="flex" gap={2} flexWrap="wrap" justifyContent="center">
+        <Button variant="contained" color="primary" onClick={savePlan}>
+          💾 Uložit jídelníček
+        </Button>
         <Button variant="contained" color="secondary" onClick={copyMealsToNextWeek}>
           Zkopírovat jídelníček do týdne {week + 1}
         </Button>
       </Box>
 
-      {/* Snackbar pro úspěch / chybu */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -287,7 +282,6 @@ const [editingCell, setEditingCell] = useState<{ day: string; section: string } 
         </Alert>
       </Snackbar>
 
-      {/* Dialog pro potvrzení přepsání plánu */}
       <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
         <DialogTitle>Přepsat jídelníček?</DialogTitle>
         <DialogContent>

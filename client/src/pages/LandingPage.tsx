@@ -120,7 +120,7 @@ const LandingPage: React.FC = () => {
                 }}
               >
                 {/* Obrázek */}
-                <Box flex={1} textAlign="center" style={{height:"250px" }}>
+                <Box flex={1} textAlign="center" style={{ height: "250px" }}>
                   <img
                     src={feature.image}
                     alt={feature.title}

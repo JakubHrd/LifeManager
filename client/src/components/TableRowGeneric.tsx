@@ -32,22 +32,28 @@ const TableRowGeneric = <T,>({
 }: TableRowGenericProps<T>) => {
   return (
     <TableRow hover>
-      <TableCell sx={{ fontWeight: "medium", pl: 2 }}>
+      <TableCell sx={{ fontWeight: 600, pl: 2, whiteSpace: "nowrap" }}>
         {translationsMap[day]?.cs || day}
       </TableCell>
-      {sectionKeys.map((section) => (
-        <TableCell key={section} align="center">
-          <EditableCell
-            description={getDescription(data[day]?.[section] as T)}
-            isDone={getDone(data[day]?.[section] as T)}
-            isEditing={editingCell?.day === day && editingCell.section === section}
-            onToggle={() => onToggle(day, section)}
-            onEdit={() => onEditCell(day, section)}
-            onChange={(val) => onChange(day, section, val)}
-            onSave={onSave}
-          />
-        </TableCell>
-      ))}
+
+      {sectionKeys.map((section) => {
+        const value = data[day]?.[section] as T;
+        const isEditing = editingCell?.day === day && editingCell.section === section;
+
+        return (
+          <TableCell key={`${day}-${section}`} align="center" sx={{ minWidth: 160 }}>
+            <EditableCell
+              description={getDescription(value)}
+              isDone={getDone(value)}
+              isEditing={isEditing}
+              onToggle={() => onToggle(day, section)}
+              onEdit={() => onEditCell(day, section)}
+              onChange={(val) => onChange(day, section, val)}
+              onSave={onSave}
+            />
+          </TableCell>
+        );
+      })}
     </TableRow>
   );
 };
