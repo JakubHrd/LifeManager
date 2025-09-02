@@ -1,0 +1,50 @@
+/* Základní škála – můžeš kdykoli změnit hodnoty bez zásahu do komponent */
+:root {
+  /* brand */
+  --lm-color-primary: #5ac8fa;
+  --lm-color-secondary: #a78bfa;
+
+  /* semantic */
+  --lm-color-success: #22c55e;
+  --lm-color-warning: #f59e0b;
+  --lm-color-error:   #ef4444;
+
+  /* surfaces & text (light jako default) */
+  --lm-bg:        #ffffff;
+  --lm-surface:   #f7f8fa;
+  --lm-text:      #111827;
+
+  /* typography */
+  --lm-font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --lm-font-size: 16; /* base px – MUI si to převezme */
+
+  /* layout */
+  --lm-radius: 16;  /* px */
+  --lm-spacing: 8;  /* px */
+
+  /* elevace */
+  --lm-shadow-1: 0 1px 2px rgba(0,0,0,.06), 0 1px 1px rgba(0,0,0,.04);
+  --lm-shadow-2: 0 4px 10px rgba(0,0,0,.08);
+}
+
+/* Dark mód (zapínáme přes <html data-theme="dark">) */
+html[data-theme="dark"] {
+  --lm-bg:      #0b0e11;
+  --lm-surface: #12161a;
+  --lm-text:    #e7e9ea;
+
+  --lm-color-primary: #5ac8fa;
+  --lm-color-secondary: #a78bfa;
+
+  --lm-shadow-1: 0 1px 2px rgba(0,0,0,.5), 0 1px 1px rgba(0,0,0,.35);
+  --lm-shadow-2: 0 6px 16px rgba(0,0,0,.45);
+}
+
+/* Volitelně respektuj systémový režim */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --lm-bg:      #0b0e11;
+    --lm-surface: #12161a;
+    --lm-text:    #e7e9ea;
+  }
+}
