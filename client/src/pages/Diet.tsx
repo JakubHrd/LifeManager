@@ -23,8 +23,11 @@ import ChatGPTAssistant from "../components/ChatGPTAssistant";
 import serverUrl from "../config";
 import UnifiedPlanCalendar, { type UnifiedPlanRef } from "../components/UnifiedPlanCalendar";
 import { mealsConfig } from "../config/calendar.meals";
+import { useGlobalLoading } from "../components/GlobalLoadingProvider";
+
 
 const Diet: React.FC = () => {
+  const { withLoading } = useGlobalLoading();
   const [meals, setMeals] = useState<any>({});
   const [evaluation, setEvaluation] = useState<string>("");
   const [suggestion, setSuggestion] = useState<any>(null);
@@ -58,7 +61,7 @@ const Diet: React.FC = () => {
         setLoadingUserSetting(false);
       }
     };
-    fetchUserSetting();
+    withLoading(fetchUserSetting()); // ⬅️ jen obalit
   }, []);
 
   // --- Prompty: přepočítávají se, když dorazí userSetting ---

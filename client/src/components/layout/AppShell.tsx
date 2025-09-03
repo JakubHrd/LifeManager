@@ -1,5 +1,6 @@
 import { PropsWithChildren, useState } from "react";
-import { Box, Container, Drawer, List, ListItemButton, ListItemText, Divider, Typography } from "@mui/material";
+import { Box, Container, Drawer, List, ListItemButton, ListItemText, Divider, Typography,LinearProgress } from "@mui/material";
+import { useGlobalLoading } from "../GlobalLoadingProvider";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import AppNavbar from "../AppNavbar";
 
@@ -15,16 +16,17 @@ const NAV = [
 export default function AppShell({ children }: PropsWithChildren) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { pathname } = useLocation();
+  const { isLoading } = useGlobalLoading();
 
   const close = () => setMobileOpen(false);
 
   return (
     <Box sx={{ minHeight: "100dvh", bgcolor: "background.default" }}>
       <AppNavbar onMenuClick={() => setMobileOpen(true)} />
-
       {/* offset pod fixed AppBar */}
       <Box sx={{ height: { xs: 56, sm: 64, md: 64 } }} />
-
+        
+      {isLoading && <LinearProgress sx={{ position: "sticky", top: 0, zIndex: 1100 }} />}
       {/* Mobile-only nav menu */}
       <Drawer
         open={mobileOpen}
