@@ -1,0 +1,46 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import GuestRoute from "./GuestRoute";
+import ProtectedRoute from "./ProtectedRoute";
+import AppShell from "../components/layout/AppShell";
+
+import LandingPage from "../pages/LandingPage";
+import Login from "../pages/Login";
+import Register from "../pages/Register";
+
+import MainDashboard from "../pages/MainDashboardPage";
+import Diet from "../pages/Diet";
+import Training from "../pages/Training";
+import Habits from "../pages/Habits";
+import Settings from "../pages/Settings";
+import UserSetting from "../components/UserSettingForm";
+// import Finance from "../pages/Finance";
+
+export default function AppRoutes() {
+  return (
+    <Routes>
+      {/* <-- AppShell obaluje VŠECHNO: navbar je všude */}
+      <Route element={<AppShell />}>
+        {/* Public / guest */}
+        <Route element={<GuestRoute />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Route>
+
+        {/* Protected */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<MainDashboard />} />
+          <Route path="/dashboard/diet" element={<Diet />} />
+          <Route path="/dashboard/training" element={<Training />} />
+          <Route path="/dashboard/habits" element={<Habits />} />
+          {/* <Route path="/dashboard/finance" element={<Finance />} /> */}
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/userSetting" element={<UserSetting />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}

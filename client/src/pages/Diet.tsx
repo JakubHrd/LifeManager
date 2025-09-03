@@ -21,6 +21,8 @@ import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import MealCalendar from "../components/MealCalendar";
 import ChatGPTAssistant from "../components/ChatGPTAssistant";
 import serverUrl from "../config";
+import UnifiedPlanCalendar, { type UnifiedPlanRef } from "../components/UnifiedPlanCalendar";
+import { mealsConfig } from "../config/calendar.meals";
 
 const Diet: React.FC = () => {
   const [meals, setMeals] = useState<any>({});
@@ -33,6 +35,7 @@ const Diet: React.FC = () => {
   const [loadingUserSetting, setLoadingUserSetting] = useState<boolean>(true);
 
   const mealCalendarRef = useRef<any>(null);
+  const calendarRef = useRef<UnifiedPlanRef>(null);
 
   const handleWeekChange = (change: number) => {
     setEvaluation("");
@@ -163,7 +166,14 @@ Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, s
           </Button>
         </Box>
       </Box>
-
+      <UnifiedPlanCalendar
+        ref={calendarRef}
+        week={week}
+        year={year}
+        config={mealsConfig}
+        onPlanChange={(data) => setMeals(data)}
+      />
+      
       <MealCalendar
         ref={mealCalendarRef}
         week={week}

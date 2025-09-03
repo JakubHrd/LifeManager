@@ -13,26 +13,41 @@ import {
   TableHead,
   TableBody,
   Paper,
+  useMediaQuery,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Checkbox,
+  TextField,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Typography,
   Button,
-  Snackbar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
+  Divider,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SaveIcon from "@mui/icons-material/Save";
+import { useTheme } from "@mui/material/styles";
 
 import { useAuthContext } from "../context/AuthContext";
-import { MealsByDay } from "../types/mealTypes";
 import TableHeader from "./TableHeader";
 import TableRowGeneric from "./TableRowGeneric";
 import { translations } from "../utils/translations";
 import serverUrl from "../config";
 
-// Backendové klíče dnů
+// Konstanty pro dny a sekce jídel
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-// Backendové klíče jídel
 const mealsDefault = ["breakfast", "snack", "lunch", "snack2", "dinner"];
+
+// Typy
+export type MealsByDay = {
+  [day: string]: {
+    [meal: string]: { description: string; eaten: boolean };
+  };
+};
 
 interface MealCalendarProps {
   week: number;
@@ -40,25 +55,24 @@ interface MealCalendarProps {
   onMealsChange?: (data: MealsByDay) => void;
 }
 
-// forwardRef – rodič může volat applySuggestion / getMeals
+type MealsChangeCb = (data: MealsByDay) => void;
+
 const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProps, ref) => {
   const { isAuthenticated } = useAuthContext();
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md")); // >= md -> desktop tabulka, < md -> mobil akordeon
 
   const [meals, setMeals] = useState<MealsByDay>({});
   const [error, setError] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{ day: string; section: string } | null>(null);
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error",
-  });
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [pendingCopy, setPendingCopy] = useState(false);
+  // Stabilní reference na callback (bez re-render smyček)
+  const latestOnMealsChange = useRef<MealsChangeCb | null>(null);
+  useEffect(() => {
+    latestOnMealsChange.current = onMealsChange ?? null;
+  }, [onMealsChange]);
 
-  // ochrana proti závodům fetchů
-  const fetchSeq = useRef(0);
-
+  // Externí API pro rodiče (getMeals, applySuggestion)
   useImperativeHandle(ref, () => ({
     getMeals: () => meals,
     applySuggestion: (suggestion: any) => {
@@ -81,73 +95,52 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
 
       const result: MealsByDay = {};
       Object.entries(suggestion).forEach(([dayCz, mealData]) => {
-        const day = dayMap[dayCz] || (dayCz as string);
-        result[day] = {};
-
+        const dayEn = dayMap[dayCz] || dayCz;
+        result[dayEn] = {};
         Object.entries(mealData as Record<string, string | null>).forEach(([mealCz, description]) => {
-          const mealKey = mealMap[mealCz] || mealCz;
-          result[day][mealKey] = {
+          const mealEn = mealMap[mealCz] || mealCz;
+          result[dayEn][mealEn] = {
             description: String(description ?? ""),
-            // zachovej případný existující eaten flag
-            eaten: Boolean(meals[day]?.[mealKey]?.eaten),
+            eaten: false,
           };
         });
       });
 
       setMeals(result);
-      onMealsChange?.(result);
-      setSnackbar({ open: true, message: "Návrh vložen do tabulky (zatím neuložen).", severity: "success" });
+      latestOnMealsChange.current?.(result);
     },
   }));
 
-  // Načtení jídel pro týden/rok
+  // Načítání z API
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const mySeq = ++fetchSeq.current;
-
-    (async () => {
+    const ac = new AbortController();
+    const load = async () => {
       try {
+        setError(null);
         const token = localStorage.getItem("token");
         const res = await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: ac.signal,
         });
         if (!res.ok) throw new Error("Chyba při načítání jídelníčku");
         const data = await res.json();
-
-        // nastav jen pokud je to poslední (aktuální) request
-        if (mySeq === fetchSeq.current) {
-          const incoming = data.meals || {};
-          setMeals(incoming);
-          onMealsChange?.(incoming);
-          setError(null);
-        }
-      } catch (err) {
-        if (mySeq === fetchSeq.current) {
+        const next = (data?.meals as MealsByDay) || {};
+        setMeals(next);
+        latestOnMealsChange.current?.(next);
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
           setError(err instanceof Error ? err.message : "Neznámá chyba");
         }
       }
-    })();
+    };
 
-    // DŮLEŽITÉ: nezahrnuj `onMealsChange` do dependency array → jinak se to přerenderuje při každé změně reference
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    load();
+    return () => ac.abort();
   }, [isAuthenticated, week, year]);
 
-  // Toggle snědeno
-  const toggleCompletion = async (day: string, meal: string) => {
-    const updated = {
-      ...meals,
-      [day]: {
-        ...meals[day],
-        [meal]: {
-          ...meals[day]?.[meal],
-          eaten: !meals[day]?.[meal]?.eaten,
-        },
-      },
-    };
-    setMeals(updated);
-    onMealsChange?.(updated);
-
+  const postMeals = async (payload: MealsByDay) => {
     const token = localStorage.getItem("token");
     await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
       method: "POST",
@@ -155,69 +148,117 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ meals: updated }),
+      body: JSON.stringify({ meals: payload }),
     });
   };
 
-  // Změna popisu
-  const handleDescriptionChange = (day: string, meal: string, val: string) => {
-    const updated = {
+  // Toggle eaten
+  const toggleCompletion = async (day: string, mealKey: string) => {
+    const updated: MealsByDay = {
       ...meals,
       [day]: {
         ...meals[day],
-        [meal]: {
-          ...meals[day]?.[meal],
-          description: val,
+        [mealKey]: {
+          ...(meals[day]?.[mealKey] ?? { description: "", eaten: false }),
+          eaten: !meals[day]?.[mealKey]?.eaten,
         },
       },
     };
     setMeals(updated);
-    onMealsChange?.(updated);
+    latestOnMealsChange.current?.(updated);
+    await postMeals(updated);
   };
 
-  // Uložení aktuálního plánu
+  // Change description (optimistic; POST při uložení/blur)
+  const handleDescriptionChange = (day: string, mealKey: string, value: string) => {
+    const updated: MealsByDay = {
+      ...meals,
+      [day]: {
+        ...meals[day],
+        [mealKey]: {
+          ...(meals[day]?.[mealKey] ?? { eaten: false, description: "" }),
+          description: value,
+        },
+      },
+    };
+    setMeals(updated);
+  };
+
   const savePlan = async () => {
-    const token = localStorage.getItem("token");
-    await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ meals }),
-    });
-    setSnackbar({ open: true, message: "Jídelníček uložen.", severity: "success" });
+    await postMeals(meals);
+    latestOnMealsChange.current?.(meals);
   };
 
-  // Kopie do dalšího týdne
-  const copyMealsToNextWeek = async () => {
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${serverUrl}/api/meals/copy?week=${week}&year=${year}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (res.status === 409) {
-      setConfirmDialogOpen(true);
-      setPendingCopy(true);
-      return;
-    }
-
-    const result = await res.json();
-    setSnackbar({ open: true, message: result.message, severity: "success" });
-  };
-
-  const handleConfirmOverwrite = async () => {
-    setConfirmDialogOpen(false);
-    if (!pendingCopy) return;
-    const token = localStorage.getItem("token");
-    const res = await fetch(`${serverUrl}/api/meals/copy?week=${week}&year=${year}&force=true`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const result = await res.json();
-    setSnackbar({ open: true, message: result.message, severity: "success" });
-    setPendingCopy(false);
+  // --- Mobilní renderer (Accordion) ---
+  const MobileMeals = () => {
+    return (
+      <Box sx={{ mt: 2 }}>
+        {days.map((day) => {
+          const dayLabel = translations[day]?.cs || day;
+          const dayMeals = meals[day] || {};
+          return (
+            <Accordion key={day} disableGutters sx={{ mb: 1, borderRadius: 2, overflow: "hidden" }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography sx={{ fontWeight: 700 }}>{dayLabel}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <List dense>
+                  {mealsDefault.map((mealKey) => {
+                    const title = translations[mealKey]?.cs || mealKey;
+                    const item = dayMeals[mealKey] || { description: "", eaten: false };
+                    return (
+                      <ListItem key={mealKey} sx={{ alignItems: "flex-start" }}>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                                {title}
+                              </Typography>
+                            </Box>
+                          }
+                          secondary={
+                            <TextField
+                              value={item.description}
+                              onChange={(e) => handleDescriptionChange(day, mealKey, e.target.value)}
+                              onBlur={savePlan}
+                              size="small"
+                              fullWidth
+                              multiline
+                              minRows={1}
+                              placeholder="Popis jídla…"
+                              sx={{ mt: 1 }}
+                            />
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Checkbox
+                            edge="end"
+                            checked={!!item.eaten}
+                            onChange={() => toggleCompletion(day, mealKey)}
+                            color="primary"
+                          />
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+                  <Button variant="outlined" size="small" startIcon={<SaveIcon />} onClick={savePlan}>
+                    Uložit den
+                  </Button>
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          );
+        })}
+        <Divider sx={{ my: 2 }} />
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Button variant="contained" onClick={savePlan} startIcon={<SaveIcon />}>
+            Uložit celý týden
+          </Button>
+        </Box>
+      </Box>
+    );
   };
 
   return (
@@ -228,76 +269,41 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
         </Alert>
       )}
 
-      <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2, boxShadow: 3, overflowX: "auto" }}>
-        <Table size="small">
-          <TableHead>
-            <TableHeader sectionKeys={mealsDefault} translationsMap={translations} />
-          </TableHead>
-          <TableBody>
-            {days.map((day) => (
-              <TableRowGeneric
-                key={day}
-                day={day}
-                sectionKeys={mealsDefault}
-                data={meals}
-                editingCell={editingCell}
-                onEditCell={(d, s) => setEditingCell({ day: d, section: s })}
-                onToggle={toggleCompletion}
-                onChange={handleDescriptionChange}
-                onSave={() => {
-                  setEditingCell(null);
-                  savePlan();
-                }}
-                getDescription={(val) => (val?.description as string) || ""}
-                getDone={(val) => Boolean(val?.eaten)}
-                translationsMap={translations}
-                itemKey="meals"
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Box mt={3} display="flex" gap={2} flexWrap="wrap" justifyContent="center">
-        <Button variant="contained" color="primary" onClick={savePlan}>
-          💾 Uložit jídelníček
-        </Button>
-        <Button variant="contained" color="secondary" onClick={copyMealsToNextWeek}>
-          Zkopírovat jídelníček do týdne {week + 1}
-        </Button>
-      </Box>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-
-      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}>
-        <DialogTitle>Přepsat jídelníček?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Pro příští týden již jídelníček existuje. Opravdu jej chceš přepsat?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfirmDialogOpen(false)} color="inherit">
-            Ne
-          </Button>
-          <Button onClick={handleConfirmOverwrite} color="primary" autoFocus>
-            Ano, přepsat
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {isMdUp ? (
+        // ===== Desktop (původní tabulka) =====
+        <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2, boxShadow: 3 }}>
+          <Table>
+            <TableHead>
+              <TableHeader sectionKeys={mealsDefault} translationsMap={translations} />
+            </TableHead>
+            <TableBody>
+              {days.map((day) => (
+                <TableRowGeneric
+                  key={day}
+                  day={day}
+                  sectionKeys={mealsDefault}
+                  data={meals}
+                  editingCell={editingCell}
+                  onEditCell={(d, s) => setEditingCell({ day: d, section: s })}
+                  onToggle={toggleCompletion}
+                  onChange={handleDescriptionChange}
+                  onSave={() => {
+                    setEditingCell(null);
+                    savePlan();
+                  }}
+                  translationsMap={translations}
+                  getDescription={(val) => (val ? (val as any).description || "" : "")}
+                  getDone={(val) => (val ? !!(val as any).eaten : false)}
+                  itemKey="meals"
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      ) : (
+        // ===== Mobil / tablet (nový accordion) =====
+        <MobileMeals />
+      )}
     </Box>
   );
 });

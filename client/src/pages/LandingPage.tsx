@@ -3,11 +3,12 @@ import { Box, Container, Typography, Button } from "@mui/material";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
-const menuImg = require("../assets/menu.svg").default;
-const financeImg = require("../assets/finance.svg").default;
-const trainingPlanImg = require("../assets/trainingPlan.svg").default;
-const habitTrackerImg = require("../assets/habitTracker.svg").default;
-const landingImage = require("../assets/landing.svg").default;
+import menuImg from "../assets/menu.svg";
+import financeImg from "../assets/finance.svg";
+import trainingPlanImg from "../assets/trainingPlan.svg";
+import habitTrackerImg from "../assets/habitTracker.svg";
+import landingImage from "../assets/landing.svg";
+
 
 // Data pro sekce
 const features = [

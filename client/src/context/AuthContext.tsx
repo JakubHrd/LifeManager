@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import serverUrl from "../config";
 
 interface AuthContextType {
+  token: string | null;
   isAuthenticated: boolean;
   username: string | null;
   login: (token: string) => void;
@@ -11,42 +12,52 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(localStorage.getItem("token") ? true : false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [username, setUsername] = useState<string | null>(null);
+
+  const isAuthenticated = !!token;
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
       if (token) {
         try {
           const res = await fetch(`${serverUrl}/api/user/profile`, {
             method: "GET",
             headers: { Authorization: `Bearer ${token}` },
+            credentials: "include", // podpora i pro cookie-based login
           });
           const data = await res.json();
-          if (res.ok) setUsername(data.username);
+          if (res.ok) setUsername(data.username || null);
         } catch (error) {
           console.error("Chyba při získávání uživatelských údajů:", error);
+          setUsername(null);
         }
+      } else {
+        setUsername(null);
       }
     };
 
     if (isAuthenticated) fetchUserData();
-  }, [isAuthenticated]);
+  }, [token, isAuthenticated]);
 
-  const login = (token: string) => {
-    localStorage.setItem("token", token);
-    setIsAuthenticated(true);
+  const login = (newToken: string) => {
+    if (newToken) {
+      localStorage.setItem("token", newToken);
+      setToken(newToken);
+    } else {
+      // cookie-based login → nemáme token, ale chceme označit jako přihlášeného
+      setToken("cookie"); // fiktivní hodnota jen aby bylo truthy
+    }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
-    setIsAuthenticated(false);
+    setToken(null);
     setUsername(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, logout }}>
+    <AuthContext.Provider value={{ token, isAuthenticated, username, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
