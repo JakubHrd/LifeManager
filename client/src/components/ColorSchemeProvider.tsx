@@ -1,9 +1,16 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { ThemeProvider, CssBaseline } from "@mui/material";
-import { buildTheme } from "../theme";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type Mode = "light" | "dark";
-type Ctx = { mode: Mode; toggle: () => void; set: (m: Mode) => void };
+export type ThemeMode = "light" | "dark" | "system";
+
+type Ctx = {
+  mode: ThemeMode;
+  /** skutečný režim po zohlednění „system“ */
+  effective: "light" | "dark";
+  setMode: (m: ThemeMode) => void;
+  toggle: () => void; // light ⇄ dark
+  cycle: () => void;  // light → dark → system → light
+};
+
 const ColorModeCtx = createContext<Ctx | null>(null);
 
 export function useColorMode() {
@@ -12,27 +19,46 @@ export function useColorMode() {
   return ctx;
 }
 
-type Props = { children: React.ReactNode };
+function applyModeAttr(mode: ThemeMode) {
+  const root = document.documentElement;
+  if (mode === "system") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", mode);
+  localStorage.setItem("lm-theme", mode);
+}
 
-export default function ColorSchemeProvider({ children }: Props) {
-  const getInitial = (): Mode => {
-    const saved = (localStorage.getItem("lm-color-mode") as Mode | null);
-    if (saved) return saved;
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  };
+function getInitialMode(): ThemeMode {
+  const saved = (localStorage.getItem("lm-theme") as ThemeMode | null);
+  return saved ?? "system";
+}
 
-  const [mode, setMode] = useState<Mode>(getInitial);
-  useEffect(() => { localStorage.setItem("lm-color-mode", mode); }, [mode]);
+export default function ColorSchemeProvider({ children }: { children: React.ReactNode }) {
+  const [mode, setMode] = useState<ThemeMode>(getInitialMode);
 
-  const theme = useMemo(() => buildTheme(mode), [mode]);
-  const value = useMemo<Ctx>(() => ({ mode, toggle: () => setMode(m => (m === "light" ? "dark" : "light")), set: setMode }), [mode]);
+  // aplikuj na <html> při mountu i při změně
+  useEffect(() => { applyModeAttr(mode); }, [mode]);
 
-  return (
-    <ColorModeCtx.Provider value={value}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </ThemeProvider>
-    </ColorModeCtx.Provider>
-  );
+  // když je „system“, reaguj na změny systému (aby se přepočetl effective)
+  useEffect(() => {
+    if (mode !== "system") return;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => setMode((m) => m); // vyvolá re-render bez změny hodnoty
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, [mode]);
+
+  const effective: "light" | "dark" =
+    mode === "system"
+      ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+      : mode;
+
+  const value = useMemo<Ctx>(() => ({
+    mode,
+    effective,
+    setMode,
+    toggle: () => setMode((m) => (m === "dark" ? "light" : "dark")),
+    cycle:  () => setMode((m) => (m === "light" ? "dark" : m === "dark" ? "system" : "light")),
+  }), [mode, effective]);
+
+  // DŮLEŽITÉ: už žádný ThemeProvider tady – venku ho dodává index.tsx
+  return <ColorModeCtx.Provider value={value}>{children}</ColorModeCtx.Provider>;
 }

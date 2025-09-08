@@ -1,3 +1,4 @@
+/*
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Container,
@@ -18,12 +19,12 @@ import {
 import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import MealCalendar from "../components/MealCalendar";
-import ChatGPTAssistant from "../components/ChatGPTAssistant";
-import serverUrl from "../config";
-import UnifiedPlanCalendar, { type UnifiedPlanRef } from "../components/UnifiedPlanCalendar";
+import MealCalendar from "./MealCalendar";
+import ChatGPTAssistant from "../../src/components/ChatGPTAssistant";
+import serverUrl from "../../src/config";
+import UnifiedPlanCalendar, { type UnifiedPlanRef } from "./UnifiedPlanCalendar";
 import { mealsConfig } from "../config/calendar.meals";
-import { useGlobalLoading } from "../components/GlobalLoadingProvider";
+import { useGlobalLoading } from "../../src/components/GlobalLoadingProvider";
 
 
 const Diet: React.FC = () => {
@@ -192,7 +193,7 @@ Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, s
         </Typography>
 
         <Box display="flex" flexDirection="column" gap={4} mt={2}>
-          {/* Vyhodnocení jídelníčku */}
+          {/* Vyhodnocení jídelníčku }
           <Box>
             <Typography variant="h6" gutterBottom>
               Vyhodnotit jídelníček
@@ -224,7 +225,7 @@ Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, s
             />
           </Box>
 
-          {/* Návrh nového jídelníčku */}
+          {/* Návrh nového jídelníčku }
           <Box>
             <Typography variant="h6" gutterBottom>
               Navrhnout vylepšený jídelníček
@@ -264,7 +265,7 @@ Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, s
           </Box>
         </Box>
 
-        {/* Výstup vyhodnocení */}
+        {/* Výstup vyhodnocení }
         {evaluation && (
           <Paper elevation={3} sx={{ p: 3, mt: 4 }}>
             <Typography variant="h6" gutterBottom>
@@ -276,7 +277,7 @@ Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, s
           </Paper>
         )}
 
-        {/* Výstup návrhu jídelníčku */}
+        {/* Výstup návrhu jídelníčku }
         {suggestion && (
           <>
             <Paper elevation={3} sx={{ p: 3, mt: 4 }}>
@@ -331,4 +332,4 @@ Používej **přesně tyto klíče** (bez diakritiky): snidane, svacina, obed, s
   );
 };
 
-export default Diet;
+export default Diet;*/

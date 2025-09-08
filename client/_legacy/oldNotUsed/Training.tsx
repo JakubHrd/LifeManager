@@ -17,8 +17,8 @@ import {
 import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import TrainingCalendar from "../components/TrainingCalendar";
-import ChatGPTAssistant from "../components/ChatGPTAssistant";
+import TrainingCalendar from "./TrainingCalendar";
+import ChatGPTAssistant from "../../src/components/ChatGPTAssistant";
 
 const Training: React.FC = () => {
   const [trainings, setTrainings] = useState<any>({});

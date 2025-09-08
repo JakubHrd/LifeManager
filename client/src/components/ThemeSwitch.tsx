@@ -1,17 +1,18 @@
 import { IconButton, Tooltip } from "@mui/material";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
-import { useTheme } from "@mui/material/styles";
+import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
 import { useColorMode } from "./ColorSchemeProvider";
 
 export default function ThemeSwitch() {
-  const theme = useTheme();
-  const { toggle } = useColorMode();
-  const isLight = theme.palette.mode === "light";
+  const { mode, effective, cycle } = useColorMode();
+  const icon = mode === "system" ? <SyncRoundedIcon /> : (effective === "dark" ? <LightModeIcon /> : <DarkModeIcon />);
+  const label = mode === "system" ? "System" : effective === "dark" ? "Dark" : "Light";
+
   return (
-    <Tooltip title={isLight ? "Dark mode" : "Light mode"}>
-      <IconButton onClick={toggle} size="small" aria-label="toggle color mode">
-        {isLight ? <DarkModeIcon /> : <LightModeIcon />}
+    <Tooltip title={`Theme: ${label} (click to change)`}>
+      <IconButton onClick={cycle} size="small" aria-label="toggle color mode">
+        {icon}
       </IconButton>
     </Tooltip>
   );

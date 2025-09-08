@@ -10,7 +10,16 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "types": ["vite/client"],
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "_legacy/oldNotUsed/EditableCell.tsx", "_legacy/oldNotUsed/TableRowGeneric.tsx", "_legacy/oldNotUsed/TrainingCalendar.tsx", "_legacy/oldNotUsed/UnifiedPlanCalendar.tsx", "_legacy/oldNotUsed/MealCalendar.tsx", "_legacy/oldNotUsed/HabitCalendar.tsx", "_legacy/oldNotUsed/TableHeader.tsx", "_legacy/oldNotUsed/Sidebar.tsx", "_legacy/oldNotUsed/types", "_legacy/oldNotUsed/PrivateRoute.tsx", "_legacy/oldNotUsed/Diet.tsx", "_legacy/oldNotUsed/Finance.tsx", "_legacy/oldNotUsed/Habits.tsx", "_legacy/oldNotUsed/Training.tsx"],
+  "exclude": [
+    "_legacy",
+    "_legacy/**",
+    "**/*.test.*",
+    "**/__mocks__/**"
+  ]
 }

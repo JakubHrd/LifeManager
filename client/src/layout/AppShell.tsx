@@ -1,8 +1,8 @@
 import { PropsWithChildren, useState } from "react";
 import { Box, Container, Drawer, List, ListItemButton, ListItemText, Divider, Typography,LinearProgress } from "@mui/material";
-import { useGlobalLoading } from "../GlobalLoadingProvider";
+import { useGlobalLoading } from "../components/GlobalLoadingProvider";
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import AppNavbar from "../AppNavbar";
+import AppNavbar from "../components/AppNavbar";
 
 const NAV = [
   { label: "Dashboard", to: "/dashboard" },

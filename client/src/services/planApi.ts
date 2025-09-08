@@ -1,6 +1,6 @@
 // src/services/planApi.ts
 import serverUrl from "../config";
-import { PlanByDay, CalendarMode } from "../types/plan";
+import { PlanByDay, CalendarMode } from "../../_legacy/oldNotUsed/types/plan";
 
 function getKey(mode: CalendarMode) {
   return mode === "meals" ? "meals" : "trainings";

@@ -1,5 +1,5 @@
 // src/utils/makeEmptyPlan.ts
-import { DayKey, PlanByDay, SectionKey } from "../types/plan";
+import { DayKey, PlanByDay, SectionKey } from "../../_legacy/oldNotUsed/types/plan";
 
 export const DAYS: DayKey[] = [
   "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"

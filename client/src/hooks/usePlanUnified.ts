@@ -1,6 +1,6 @@
 // src/hooks/usePlanUnified.ts
 import { useEffect, useState, useRef } from "react";
-import { CalendarConfig, PlanByDay } from "../types/plan";
+import { CalendarConfig, PlanByDay } from "../../_legacy/oldNotUsed/types/plan";
 import { fetchPlan, savePlan } from "../services/planApi";
 
 export function usePlanUnified(week: number, year: number, config: CalendarConfig) {

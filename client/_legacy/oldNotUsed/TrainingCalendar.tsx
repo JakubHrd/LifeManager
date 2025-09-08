@@ -1,3 +1,4 @@
+// src/components/TrainingCalendar.tsx
 import React, {
   useState,
   useEffect,
@@ -32,50 +33,52 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SaveIcon from "@mui/icons-material/Save";
 import { useTheme } from "@mui/material/styles";
 
-import { useAuthContext } from "../context/AuthContext";
+import { useAuthContext } from "../../src/context/AuthContext";
 import TableHeader from "./TableHeader";
 import TableRowGeneric from "./TableRowGeneric";
-import { translations } from "../utils/translations";
-import serverUrl from "../config";
+import { translations } from "../../src/utils/translations";
+import serverUrl from "../../src/config";
 
-// Konstanty pro dny a sekce jídel
+// Dny + sekce tréninku
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const mealsDefault = ["breakfast", "snack", "lunch", "snack2", "dinner"];
+const trainingsDefault = ["morning", "main", "evening"];
 
 // Typy
-export type MealsByDay = {
+type TrainingCell = { description: string; done: boolean };
+export type TrainingsByDay = {
   [day: string]: {
-    [meal: string]: { description: string; eaten: boolean };
+    [section: string]: TrainingCell;
   };
 };
 
-interface MealCalendarProps {
+interface TrainingCalendarProps {
   week: number;
   year: number;
-  onMealsChange?: (data: MealsByDay) => void;
+  onTrainingsChange?: (data: TrainingsByDay) => void;
 }
 
-type MealsChangeCb = (data: MealsByDay) => void;
+type TrainingsChangeCb = (data: TrainingsByDay) => void;
 
-const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProps, ref) => {
+const TrainingCalendar = forwardRef(({ week, year, onTrainingsChange }: TrainingCalendarProps, ref) => {
   const { isAuthenticated } = useAuthContext();
   const theme = useTheme();
-  const isMdUp = useMediaQuery(theme.breakpoints.up("md")); // >= md -> desktop tabulka, < md -> mobil akordeon
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md")); // desktop tabulka vs. mobil akordeon
 
-  const [meals, setMeals] = useState<MealsByDay>({});
+  const [trainings, setTrainings] = useState<TrainingsByDay>({});
   const [error, setError] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<{ day: string; section: string } | null>(null);
 
-  // Stabilní reference na callback (bez re-render smyček)
-  const latestOnMealsChange = useRef<MealsChangeCb | null>(null);
+  // stabilní ref na prop callback, aby nevznikaly smyčky
+  const latestOnChange = useRef<TrainingsChangeCb | null>(null);
   useEffect(() => {
-    latestOnMealsChange.current = onMealsChange ?? null;
-  }, [onMealsChange]);
+    latestOnChange.current = onTrainingsChange ?? null;
+  }, [onTrainingsChange]);
 
-  // Externí API pro rodiče (getMeals, applySuggestion)
+  // Externí API pro rodiče (Training page)
   useImperativeHandle(ref, () => ({
-    getMeals: () => meals,
+    getTrainings: () => trainings,
     applySuggestion: (suggestion: any) => {
+      // CZ -> EN mapování
       const dayMap: Record<string, string> = {
         "Pondělí": "Monday",
         "Úterý": "Tuesday",
@@ -85,33 +88,33 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
         "Sobota": "Saturday",
         "Neděle": "Sunday",
       };
-      const mealMap: Record<string, string> = {
-        snidane: "breakfast",
-        svacina: "snack",
-        obed: "lunch",
-        svacina_odpoledne: "snack2",
-        vecere: "dinner",
+      const sectionMap: Record<string, string> = {
+        rano: "morning",
+        hlavni: "main",
+        vecer: "evening",
       };
 
-      const result: MealsByDay = {};
-      Object.entries(suggestion).forEach(([dayCz, mealData]) => {
+      const finalTrainings: TrainingsByDay = {};
+      Object.entries(suggestion).forEach(([dayCz, sections]) => {
         const dayEn = dayMap[dayCz] || dayCz;
-        result[dayEn] = {};
-        Object.entries(mealData as Record<string, string | null>).forEach(([mealCz, description]) => {
-          const mealEn = mealMap[mealCz] || mealCz;
-          result[dayEn][mealEn] = {
-            description: String(description ?? ""),
-            eaten: false,
-          };
-        });
+        finalTrainings[dayEn] = {};
+        Object.entries(sections as Record<string, string | null | undefined>).forEach(
+          ([sectionCz, description]) => {
+            const key = sectionMap[sectionCz] || sectionCz;
+            finalTrainings[dayEn][key] = {
+              description: String(description ?? ""),
+              done: false,
+            };
+          }
+        );
       });
 
-      setMeals(result);
-      latestOnMealsChange.current?.(result);
+      setTrainings(finalTrainings);
+      latestOnChange.current?.(finalTrainings);
     },
   }));
 
-  // Načítání z API
+  // Načtení z API (bez smyček)
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -120,15 +123,15 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
       try {
         setError(null);
         const token = localStorage.getItem("token");
-        const res = await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
+        const res = await fetch(`${serverUrl}/api/trainings?week=${week}&year=${year}`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: ac.signal,
         });
-        if (!res.ok) throw new Error("Chyba při načítání jídelníčku");
+        if (!res.ok) throw new Error("Chyba při načítání tréninků");
         const data = await res.json();
-        const next = (data?.meals as MealsByDay) || {};
-        setMeals(next);
-        latestOnMealsChange.current?.(next);
+        const next = (data?.trainings as TrainingsByDay) || {};
+        setTrainings(next);
+        latestOnChange.current?.(next);
       } catch (err: any) {
         if (err?.name !== "AbortError") {
           setError(err instanceof Error ? err.message : "Neznámá chyba");
@@ -140,62 +143,62 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
     return () => ac.abort();
   }, [isAuthenticated, week, year]);
 
-  const postMeals = async (payload: MealsByDay) => {
+  const postTrainings = async (payload: TrainingsByDay) => {
     const token = localStorage.getItem("token");
-    await fetch(`${serverUrl}/api/meals?week=${week}&year=${year}`, {
+    await fetch(`${serverUrl}/api/trainings?week=${week}&year=${year}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ meals: payload }),
+      body: JSON.stringify({ trainings: payload }),
     });
   };
 
-  // Toggle eaten
-  const toggleCompletion = async (day: string, mealKey: string) => {
-    const updated: MealsByDay = {
-      ...meals,
+  // Toggle done
+  const toggleCompletion = async (day: string, section: string) => {
+    const updated: TrainingsByDay = {
+      ...trainings,
       [day]: {
-        ...meals[day],
-        [mealKey]: {
-          ...(meals[day]?.[mealKey] ?? { description: "", eaten: false }),
-          eaten: !meals[day]?.[mealKey]?.eaten,
+        ...trainings[day],
+        [section]: {
+          ...(trainings[day]?.[section] ?? { description: "", done: false }),
+          done: !trainings[day]?.[section]?.done,
         },
       },
     };
-    setMeals(updated);
-    latestOnMealsChange.current?.(updated);
-    await postMeals(updated);
+    setTrainings(updated);
+    latestOnChange.current?.(updated);
+    await postTrainings(updated);
   };
 
-  // Change description (optimistic; POST při uložení/blur)
-  const handleDescriptionChange = (day: string, mealKey: string, value: string) => {
-    const updated: MealsByDay = {
-      ...meals,
+  // Změna popisu (optimistic, uložíme na blur/tlačítko)
+  const handleDescriptionChange = (day: string, section: string, value: string) => {
+    const updated: TrainingsByDay = {
+      ...trainings,
       [day]: {
-        ...meals[day],
-        [mealKey]: {
-          ...(meals[day]?.[mealKey] ?? { eaten: false, description: "" }),
+        ...trainings[day],
+        [section]: {
+          ...(trainings[day]?.[section] ?? { done: false, description: "" }),
           description: value,
         },
       },
     };
-    setMeals(updated);
+    setTrainings(updated);
   };
 
   const savePlan = async () => {
-    await postMeals(meals);
-    latestOnMealsChange.current?.(meals);
+    await postTrainings(trainings);
+    latestOnChange.current?.(trainings);
   };
 
   // --- Mobilní renderer (Accordion) ---
-  const MobileMeals = () => {
+  const MobileTrainings = () => {
     return (
       <Box sx={{ mt: 2 }}>
         {days.map((day) => {
           const dayLabel = translations[day]?.cs || day;
-          const dayMeals = meals[day] || {};
+          const dayData = trainings[day] || {};
           return (
             <Accordion key={day} disableGutters sx={{ mb: 1, borderRadius: 2, overflow: "hidden" }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -203,11 +206,11 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
               </AccordionSummary>
               <AccordionDetails>
                 <List dense>
-                  {mealsDefault.map((mealKey) => {
-                    const title = translations[mealKey]?.cs || mealKey;
-                    const item = dayMeals[mealKey] || { description: "", eaten: false };
+                  {trainingsDefault.map((sec) => {
+                    const title = translations[sec]?.cs || sec;
+                    const item = dayData[sec] || { description: "", done: false };
                     return (
-                      <ListItem key={mealKey} sx={{ alignItems: "flex-start" }}>
+                      <ListItem key={sec} sx={{ alignItems: "flex-start" }}>
                         <ListItemText
                           primary={
                             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -219,13 +222,13 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
                           secondary={
                             <TextField
                               value={item.description}
-                              onChange={(e) => handleDescriptionChange(day, mealKey, e.target.value)}
+                              onChange={(e) => handleDescriptionChange(day, sec, e.target.value)}
                               onBlur={savePlan}
                               size="small"
                               fullWidth
                               multiline
                               minRows={1}
-                              placeholder="Popis jídla…"
+                              placeholder="Popis aktivity…"
                               sx={{ mt: 1 }}
                             />
                           }
@@ -233,8 +236,8 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
                         <ListItemSecondaryAction>
                           <Checkbox
                             edge="end"
-                            checked={!!item.eaten}
-                            onChange={() => toggleCompletion(day, mealKey)}
+                            checked={!!item.done}
+                            onChange={() => toggleCompletion(day, sec)}
                             color="primary"
                           />
                         </ListItemSecondaryAction>
@@ -274,15 +277,15 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
         <TableContainer component={Paper} sx={{ mt: 3, borderRadius: 2, boxShadow: 3 }}>
           <Table>
             <TableHead>
-              <TableHeader sectionKeys={mealsDefault} translationsMap={translations} />
+              <TableHeader sectionKeys={trainingsDefault} translationsMap={translations} />
             </TableHead>
             <TableBody>
               {days.map((day) => (
                 <TableRowGeneric
                   key={day}
                   day={day}
-                  sectionKeys={mealsDefault}
-                  data={meals}
+                  sectionKeys={trainingsDefault}
+                  data={trainings}
                   editingCell={editingCell}
                   onEditCell={(d, s) => setEditingCell({ day: d, section: s })}
                   onToggle={toggleCompletion}
@@ -292,20 +295,20 @@ const MealCalendar = forwardRef(({ week, year, onMealsChange }: MealCalendarProp
                     savePlan();
                   }}
                   translationsMap={translations}
-                  getDescription={(val) => (val ? (val as any).description || "" : "")}
-                  getDone={(val) => (val ? !!(val as any).eaten : false)}
-                  itemKey="meals"
+                  getDescription={(it) => (it ? (it as any).description || "" : "")}
+                  getDone={(it) => (it ? !!(it as any).done : false)}
+                  itemKey="trainings"
                 />
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       ) : (
-        // ===== Mobil / tablet (nový accordion) =====
-        <MobileMeals />
+        // ===== Mobil / tablet (akordeon) =====
+        <MobileTrainings />
       )}
     </Box>
   );
 });
 
-export default MealCalendar;
+export default TrainingCalendar;

@@ -9,7 +9,7 @@ import {
 import moment from "moment";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
-import HabitCalendar from "../components/HabitCalendar";
+import HabitCalendar from "./HabitCalendar";
 
 const Habits: React.FC = () => {
   const [week, setWeek] = useState<number>(moment().isoWeek());

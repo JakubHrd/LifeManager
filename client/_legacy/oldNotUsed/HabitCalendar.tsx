@@ -38,8 +38,8 @@ import { useTheme } from "@mui/material/styles";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useAuthContext } from "../context/AuthContext";
-import serverUrl from "../config";
+import { useAuthContext } from "../../src/context/AuthContext";
+import serverUrl from "../../src/config";
 
 interface HabitCalendarProps {
   week: number;

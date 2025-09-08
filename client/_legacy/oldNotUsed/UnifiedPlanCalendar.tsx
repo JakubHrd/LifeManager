@@ -1,4 +1,5 @@
-// src/components/UnifiedPlanCalendar.tsx
+/** @deprecated - archived in _legacy, not part of build */
+/*
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import {
   Box, Alert, TableContainer, Table, TableHead, TableBody, Paper,
@@ -10,10 +11,10 @@ import SaveIcon from "@mui/icons-material/Save";
 import { useTheme } from "@mui/material/styles";
 import TableHeader from "./TableHeader";
 import TableRowGeneric from "./TableRowGeneric";
-import { translations } from "../utils/translations";
-import { CalendarConfig, PlanByDay } from "../types/plan";
-import { usePlanUnified } from "../hooks/usePlanUnified";
-import { DAYS } from "../utils/makeEmptyPlan";
+import { translations } from "../../src/utils/translations";
+import { CalendarConfig, PlanByDay } from "../../src/types/plan";
+import { usePlanUnified } from "../../src/hooks/usePlanUnified";
+import { DAYS } from "../../src/utils/makeEmptyPlan";
 
 type Props = {
   week: number;
@@ -186,3 +187,4 @@ const UnifiedPlanCalendar = forwardRef<UnifiedPlanRef, Props>(({ week, year, con
 });
 
 export default UnifiedPlanCalendar;
+*/
