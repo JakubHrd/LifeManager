@@ -1,25 +1,32 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { createMuiThemeFromTokens } from './theme/createMuiThemeFromTokens';
+import { APP_BASE } from "@/config";
 
+import '../src/styles/tokens.css';
 import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+const Root = () => {
+  const [theme, setTheme] = React.useState(createMuiThemeFromTokens());
 
-root.render(
-  <React.StrictMode>
-    {/* Jediný Router v celé aplikaci + basename podle tvé struktury */}
-    <BrowserRouter basename="/projekty/lifeManager">
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>
-);
+  // Když přepneme data-theme na <html>, theme se přegeneruje
+  React.useEffect(() => {
+    const obs = new MutationObserver(() => setTheme(createMuiThemeFromTokens()));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter basename={APP_BASE}>
+        <App />
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<Root />);

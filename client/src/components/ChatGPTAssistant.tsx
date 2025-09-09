@@ -11,18 +11,46 @@ interface ChatGPTAssistantProps {
   userSetting?: any;
 }
 
+/** Pomocná — zkusí vyparsovat JSON i z textové odpovědi (code block, volný JSON, atd.) */
+function smartParseJson(text: string): { ok: boolean; value?: any } {
+  // 1) Zkus čistý JSON
+  try {
+    return { ok: true, value: JSON.parse(text) };
+  } catch {}
+
+  // 2) Zkus code block ```json ... ```
+  const codeBlockMatch = text.match(/```json\s*([\s\S]*?)```/i) || text.match(/```\s*([\s\S]*?)```/i);
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    const inner = codeBlockMatch[1].trim();
+    try {
+      return { ok: true, value: JSON.parse(inner) };
+    } catch {}
+  }
+
+  // 3) Heuristika: najdi první { a poslední } a zkus to
+  const first = text.indexOf("{");
+  const last = text.lastIndexOf("}");
+  if (first !== -1 && last !== -1 && last > first) {
+    const maybeJson = text.slice(first, last + 1);
+    try {
+      return { ok: true, value: JSON.parse(maybeJson) };
+    } catch {}
+  }
+
+  return { ok: false };
+}
+
 const ChatGPTAssistant: React.FC<ChatGPTAssistantProps> = ({
   endpoint,
   data,
   systemPrompt,
   onResponse,
-  label, 
+  label,
   userSetting,
 }) => {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
-    console.log('handleClick chat userSetting',{userSetting});
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -34,27 +62,49 @@ const ChatGPTAssistant: React.FC<ChatGPTAssistantProps> = ({
         },
         body: JSON.stringify({ data, userSetting, systemPrompt }),
       });
-  
-      const text = await res.text(); // 🧠 přečteme jako text pro případ HTML
-      try {
-        const result = JSON.parse(text);
-        onResponse(result.updatedPlan || result.result || result.rawResponse);
-      } catch (jsonErr) {
-        console.error("❌ Chybný JSON:", text); // vypíšeme HTML/404 stránku
+
+      const text = await res.text();
+
+      if (!res.ok) {
+        // vrať aspoň text s chybou, ať je vidět co přišlo
+        onResponse(text || "Chyba: nepodařilo se získat odpověď od serveru.");
+        return;
       }
-    } catch (error) {
-      console.error("Chyba při volání GPT:", error);
+
+      // Zkus chytře vyparsovat
+      const parsed = smartParseJson(text);
+      if (parsed.ok) {
+        const obj = parsed.value;
+        // sjednocení nejčastějších tvarů odpovědí
+        const unified =
+          obj?.updatedPlan ??
+          obj?.result ??
+          obj?.rawResponse ??
+          obj; // fallback – přímo objekt
+        onResponse(unified);
+      } else {
+        // fallback — vrať plain text
+        onResponse(text);
+      }
+    } catch (error: any) {
+      onResponse(`Chyba při volání GPT: ${error?.message || String(error)}`);
     } finally {
       setLoading(false);
     }
   };
-  
 
   return (
     <>
       <Button variant="outlined" onClick={handleClick}>{label}</Button>
-      <Backdrop open={loading} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, flexDirection: "column", color: "#fff" }}>
-        <Typography mb={2}>🧠 Generuji odpověď z ChatGPT...</Typography>
+      <Backdrop
+        open={loading}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          flexDirection: "column",
+          color: "#fff",
+        }}
+      >
+        <Typography mb={2}>🧠 Generuji odpověď…</Typography>
         <CircularProgress color="inherit" />
       </Backdrop>
     </>

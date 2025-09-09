@@ -2,7 +2,7 @@ import React from "react";
 import { Box, CssBaseline } from "@mui/material";
 import { Outlet } from "react-router-dom";
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   return (
     <Box sx={{ width: "100vw", height: "100vh" }}>
       <CssBaseline />
