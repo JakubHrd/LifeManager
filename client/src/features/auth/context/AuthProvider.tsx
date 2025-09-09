@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import serverUrl from "../config";
+import { meApi } from "../api";
 
-interface AuthContextType {
+export interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   username: string | null;
@@ -19,34 +19,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (token) {
-        try {
-          const res = await fetch(`${serverUrl}/api/user/profile`, {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-            credentials: "include", // podpora i pro cookie-based login
-          });
-          const data = await res.json();
-          if (res.ok) setUsername(data.username || null);
-        } catch (error) {
-          console.error("Chyba při získávání uživatelských údajů:", error);
-          setUsername(null);
-        }
-      } else {
+      try {
+        if (!isAuthenticated) { setUsername(null); return; }
+        const profile = await meApi(); // token/cookies řeší apiFetch
+        setUsername(profile.username || null);
+      } catch {
+        // 401 už apiFetch odhlásil z localStorage
         setUsername(null);
+        setToken(null);
       }
     };
-
-    if (isAuthenticated) fetchUserData();
-  }, [token, isAuthenticated]);
+    fetchUserData();
+  }, [isAuthenticated]);
 
   const login = (newToken: string) => {
     if (newToken) {
       localStorage.setItem("token", newToken);
       setToken(newToken);
     } else {
-      // cookie-based login → nemáme token, ale chceme označit jako přihlášeného
-      setToken("cookie"); // fiktivní hodnota jen aby bylo truthy
+      // cookie-based fallback (nepoužíváš teď, ale nechávám kompatibilitu)
+      setToken("cookie");
     }
   };
 
@@ -64,9 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuthContext = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuthContext must be used within an AuthProvider");
+  return ctx;
 };

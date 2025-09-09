@@ -6,7 +6,7 @@ import { useColorMode } from "./ColorSchemeProvider";
 
 export default function ThemeSwitch() {
   const { mode, effective, cycle } = useColorMode();
-  const icon = mode === "system" ? <SyncRoundedIcon /> : (effective === "dark" ? <LightModeIcon /> : <DarkModeIcon />);
+  const icon = mode === "system" ? <SyncRoundedIcon /> : (effective === "dark" ? <LightModeIcon /> : <DarkModeIcon sx={{color: "black"  }}/>);
   const label = mode === "system" ? "System" : effective === "dark" ? "Dark" : "Light";
 
   return (

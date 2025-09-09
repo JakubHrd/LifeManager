@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuthContext } from "../context/AuthContext";
+import { useAuthContext } from "@/features/auth/context/AuthProvider";
 
 export default function GuestRoute() {
-  const { username } = useAuthContext();
-  return username ? <Navigate to="/dashboard" replace /> : <Outlet />;
+  const { isAuthenticated } = useAuthContext();
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Outlet />;
 }

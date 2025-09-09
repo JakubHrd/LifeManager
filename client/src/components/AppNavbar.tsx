@@ -9,8 +9,8 @@ import Settings from '@mui/icons-material/Settings';
 import Person from '@mui/icons-material/Person';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import ThemeSwitch from './ThemeSwitch';
-import { useAuthContext } from '../context/AuthContext';
-import { logout } from '../auth/logout';
+import { useAuthContext } from '@/features/auth/context/AuthProvider';
+import { logout } from '../features/auth/utils/logout';
 import NavLinkButton from './NavLinkButton';
 
 type Props = { onMenuClick?: () => void };

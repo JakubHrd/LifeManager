@@ -1,5 +1,5 @@
 // src/App.tsx
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "@/features/auth/context/AuthProvider";
 import ColorSchemeProvider from "./components/ColorSchemeProvider";
 import GlobalLoadingProvider from "./components/GlobalLoadingProvider";
 import AppRoutes from "./routes";

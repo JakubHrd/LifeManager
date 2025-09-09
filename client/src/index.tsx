@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { createMuiThemeFromTokens } from './theme/createMuiThemeFromTokens';
+import { APP_BASE } from "@/config";
 
 import '../src/styles/tokens.css';
 import './index.css';
@@ -21,7 +22,7 @@ const Root = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <BrowserRouter basename={(import.meta.env.BASE_URL ?? '/').replace(/\/$/, '')}>
+      <BrowserRouter basename={APP_BASE}>
         <App />
       </BrowserRouter>
     </ThemeProvider>

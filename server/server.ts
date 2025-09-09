@@ -1,4 +1,5 @@
 import express, { Application } from "express";
+import "dotenv-flow/config";
 import { setupSwagger } from "./swagger";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -10,6 +11,8 @@ import trainingRoutes from "./routes/trainingRoutes"; // Import training routes
 import chatGPTRouter from "./routes/chatgptRoutes"; // Import ChatGPT routes
 import habitRoutes from "./routes/habitRoutes"; // Import habit routes
 import userSettingRoute from "./routes/userSettingRoutes"; // Import user setting routes
+import { CORS_ORIGINS, PORT as CFG_PORT, isProd, logEnvSummary } from "./config/env";
+
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -23,7 +26,16 @@ setupSwagger(app);
 /**
  * Apply middleware
  */
-app.use(cors()); // Enable Cross-Origin Resource Sharing
+app.use(cors({
+  origin(origin, cb) {
+    // povolit i požadavky bez Origin (např. curl/healthcheck)
+    if (!origin) return cb(null, true);
+    if (CORS_ORIGINS.includes(origin)) return cb(null, true);
+    return cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true, // nevadí ani když jedeš jen bearer token
+})); // Enable Cross-Origin Resource Sharing
+
 app.use(express.json()); // Parse incoming JSON requests
 
 /**
@@ -38,10 +50,12 @@ app.use("/api/chat", chatGPTRouter); // ChatGPT routes
 app.use("/api/habits", habitRoutes); // Habit routes
 app.use("/api/userSetting", userSettingRoute); // User setting routes
 
-const PORT = process.env.PORT || 5000;
+const PORT = CFG_PORT;
 
 /**
  * Start server
  */
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
-
+app.listen(PORT, () => {
+  logEnvSummary();
+  console.log(`Server running on :${PORT} (${isProd ? "PROD" : "DEV"})`);
+});

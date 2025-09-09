@@ -20,7 +20,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import moment from "moment";
 import "moment/locale/cs";
-import { useAuthContext } from "../context/AuthContext";
+import { useAuthContext } from "@/features/auth/context/AuthProvider";
 import serverUrl from "../config";
 
 import RestaurantIcon from "@mui/icons-material/Restaurant";

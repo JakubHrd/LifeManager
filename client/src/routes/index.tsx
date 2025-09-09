@@ -3,11 +3,12 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import GuestRoute from "./GuestRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import AppShell from "../layout/AppShell";
-
 import LandingPage from "../pages/LandingPage";
-import Login from "../pages/Login";
-import Register from "../pages/Register";
-
+import Login from "@/features/auth/pages/Login";
+import Register from "@/features/auth/pages/Register";
+import SettingsUnifiedPage from "@/pages/SettingsUnifiedPage";
+// (volitelně) import AuthGuard pokud chceš chránit větve:
+// import AuthGuard from "@/features/auth/components/AuthGuard";
 import MainDashboard from "../pages/MainDashboardPage";
 import TrainingPage from "../modules/activity/pages/TrainingPage";
 import HabitsPage from "../modules/activity/pages/HabitsPage";
@@ -45,8 +46,8 @@ export default function AppRoutes() {
           */}
           
           {/* <Route path="/dashboard/finance" element={<Finance />} /> */}
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/userSetting" element={<UserSetting />} />
+          <Route path="/settings" element={<SettingsUnifiedPage />} />
+          <Route path="/userSetting" element={<SettingsUnifiedPage />} />
         </Route>
 
         {/* Fallback */}
