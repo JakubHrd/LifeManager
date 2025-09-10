@@ -10,6 +10,8 @@
 
 # production
 /build
+/dist
+LifeManager-FE-*.zip
 
 # misc
 .DS_Store
