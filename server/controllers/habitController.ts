@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import pool from "../db";
+import {pool} from "../db";
 import { defaultHabits, HabitPlan } from "../models/habitPlan";
 import { getCurrentWeekAndYear } from "../utils/dateUtils";
 

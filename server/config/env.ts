@@ -9,7 +9,7 @@ export const FRONTEND_URL = isProd
 
 // Povolené originy pro CORS (čárkou oddělený seznam). Když není, použij FRONTEND_URL.
 export const CORS_ORIGINS = (process.env.CORS_ORIGINS || FRONTEND_URL)
-  .split(",").map(s => s.trim()).filter(Boolean);
+  .split(",").map((s: string) => s.trim()).filter(Boolean);
 
 // Cookies vlajky (kdybys v budoucnu používal cookie-auth)
 export const DB_URL = process.env.DATABASE_URL!;

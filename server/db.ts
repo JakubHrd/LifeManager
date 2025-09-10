@@ -3,11 +3,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false, // ignoruje neověřené certifikáty (Render to potřebuje)
-      },
+const useSsl = String(process.env.DATABASE_SSL || "").toLowerCase() === "true";
+
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
 });
 
-export default pool;

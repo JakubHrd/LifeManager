@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import pool from "../db";
+import {pool} from "../db";
 import { UserSettingInput } from "../types/userSettingTypes";
 
 /**

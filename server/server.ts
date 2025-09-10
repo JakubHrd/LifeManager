@@ -27,13 +27,12 @@ setupSwagger(app);
  * Apply middleware
  */
 app.use(cors({
-  origin(origin, cb) {
-    // povolit i požadavky bez Origin (např. curl/healthcheck)
+  origin(origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) {
     if (!origin) return cb(null, true);
     if (CORS_ORIGINS.includes(origin)) return cb(null, true);
     return cb(new Error("Not allowed by CORS"));
   },
-  credentials: true, // nevadí ani když jedeš jen bearer token
+  credentials: true,
 })); // Enable Cross-Origin Resource Sharing
 
 app.use(express.json()); // Parse incoming JSON requests

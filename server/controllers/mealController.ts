@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import pool from "../db";
+import {pool} from "../db";
 import { getCurrentWeekAndYear } from "../utils/dateUtils";
 import { defaultMeals, MealPlan } from "../models/mealPlan";
 

@@ -4,7 +4,7 @@
 
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import pool from "../db";
+import {pool} from "../db";
 import { UpdateUserRequest } from "../types/userTypes";
 
 /**
