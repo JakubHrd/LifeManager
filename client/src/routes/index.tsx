@@ -14,6 +14,7 @@ import TrainingPage from "../modules/activity/pages/TrainingPage";
 import HabitsPage from "../modules/activity/pages/HabitsPage";
 import MealsPage from "../modules/activity/pages/MealsPage";
 import FinancePage from "@/modules/finance/pages/FinancePage";
+import VerifyEmailPage from "@/features/auth/pages/VerifyEmailPage"; 
 import Settings from "../pages/Settings";
 import UserSetting from "../components/UserSettingForm";
 
@@ -30,6 +31,7 @@ export default function AppRoutes() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth/verify" element={<VerifyEmailPage />} />
         </Route>
 
         {/* Protected */}

@@ -1,12 +1,7 @@
 import { Pool } from "pg";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const useSsl = String(process.env.DATABASE_SSL || "").toLowerCase() === "true";
+import { DB_URL, DB_SSL } from "./config/env";
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: useSsl ? { rejectUnauthorized: false } : false,
+  connectionString: DB_URL,
+  ssl: DB_SSL ? { rejectUnauthorized: false } : false,
 });
-
