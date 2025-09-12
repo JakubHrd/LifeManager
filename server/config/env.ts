@@ -4,7 +4,7 @@ export const PORT = Number(process.env.PORT || 5000);
 
 // URL frontendu pro odkazy a CORS (lze přepsat ENV proměnnými)
 export const FRONTEND_URL = isProd
-  ? (process.env.FRONTEND_URL_PROD || "https://hrdnk.cz/projekty/lifeManager/")
+  ? (process.env.FRONTEND_URL_PROD || "https://lifemanager-gs41.onrender.com/")
   : (process.env.FRONTEND_URL_DEV || "http://localhost:5173");
 
 // Povolené originy pro CORS (čárkou oddělený seznam). Když není, použij FRONTEND_URL.
