@@ -23,4 +23,5 @@ export function logEnvSummary() {
   console.log("[env] PORT:", PORT);
   console.log("[env] FRONTEND_URL:", FRONTEND_URL);
   console.log("[env] CORS_ORIGINS:", CORS_ORIGINS);
+  console.log("[env] DB_URL:", DB_URL);
 }

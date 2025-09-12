@@ -95,6 +95,17 @@ export const loginUser = async (
       return;
     }
 
+    if (!user.email_verified) {
+      res.status(403).json({
+        code: "EMAIL_NOT_VERIFIED",
+        message: "E-mail není ověřen. Zkontroluj schránku nebo si nech poslat nový ověřovací e-mail."
+      });
+      return;
+    }
+
+
+
+
     // Generate a JWT token with the user's ID.
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET as string, {
       expiresIn: "1h",
