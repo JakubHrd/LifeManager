@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { registerUser, loginUser } from "../controllers/authController";
+import { registerUser, loginUser,verifyEmail, resendVerification } from "../controllers/authController";
+
 
 const authRoutes = Router();
 
@@ -63,5 +64,7 @@ authRoutes.post("/register", registerUser);
  *         description: Neautorizovaný přístup
  */
 authRoutes.post("/login", loginUser);
+authRoutes.post("/resend-verification", resendVerification);
+authRoutes.get("/verify", verifyEmail);
 
 export { authRoutes };

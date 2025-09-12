@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import {pool} from "../db";
 import dotenv from "dotenv";
 import { RegisterRequestBody, LoginRequestBody } from "../types/authTypes";
+import { issueVerificationForUser } from "../utils/emailVerification";
 
 dotenv.config();
 
@@ -41,14 +42,19 @@ export const registerUser = async (
     );
 
     // Generate a JWT token with the user's ID.
-    const token = jwt.sign(
+    /*const token = jwt.sign(
       { userId: newUser.rows[0].id },
       process.env.JWT_SECRET as string,
       { expiresIn: "1h" }
     );
-
     // Return the token and the user's data.
-    res.status(201).json({ token, user: newUser.rows[0] });
+    //res.status(201).json({ token, user: newUser.rows[0] });
+    */
+    await issueVerificationForUser(newUser.rows[0].id, email, username);
+    res.status(201).json({
+      message: "Účet vytvořen. Zkontroluj e-mail a dokonči ověření."
+    });
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
@@ -101,4 +107,57 @@ export const loginUser = async (
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const resendVerification = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body as { email?: string };
+  if (!email) { res.status(400).json({ message: "Chybí e-mail." }); return; }
+
+  try {
+    const users = await pool.query(
+      "SELECT id, username, email_verified FROM users WHERE LOWER(email) = LOWER($1)",
+      [email]
+    );
+    // bezpečné odpovědi – neprozrazuj existenci účtu
+    if (users.rows.length === 0) { res.json({ message: "Pokud účet existuje, e-mail byl odeslán." }); return; }
+
+    const user = users.rows[0];
+    if (user.email_verified) { res.json({ message: "E-mail už je ověřen." }); return; }
+
+    const { verifyLink } = await issueVerificationForUser(user.id, email, user.username);
+    // DEV nápověda: vyloguj link (v PROD nebude vadit)
+    console.log("[verify] link:", verifyLink);
+    res.json({ message: "Ověřovací e-mail odeslán." });
+  } catch (e: any) {
+    console.error("resendVerification error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+  const token = String(req.query.token || "");
+  if (!token) { res.status(400).json({ message: "Chybí token." }); return; }
+
+  try {
+    const r = await pool.query(
+      "SELECT id, verification_expires FROM users WHERE verification_token = $1",
+      [token]
+    );
+    if (r.rows.length === 0) { res.status(400).json({ message: "Token je neplatný." }); return; }
+
+    const { id, verification_expires } = r.rows[0];
+    if (verification_expires && new Date(verification_expires).getTime() < Date.now()) {
+      res.status(400).json({ message: "Token vypršel. Požádej o nový." }); return;
+    }
+
+    await pool.query(
+      "UPDATE users SET email_verified = true, verification_token = NULL, verification_expires = NULL WHERE id = $1",
+      [id]
+    );
+    res.json({ message: "E-mail ověřen. Můžeš se přihlásit." });
+  } catch (e: any) {
+    console.error("verifyEmail error:", e);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
