@@ -1,8 +1,7 @@
-import express, { Application } from "express";
 import "dotenv-flow/config";
+import express, { Application } from "express";
 import { setupSwagger } from "./swagger";
 import cors from "cors";
-import dotenv from "dotenv";
 import {authRoutes} from "./routes/authRoutes"; // Import authentication routes
 import dashboardRoutes from "./routes/dashboardRoutes"; // Import dashboard routes
 import userRoutes from "./routes/userRoutes"; // Import user routes
@@ -12,9 +11,8 @@ import chatGPTRouter from "./routes/chatgptRoutes"; // Import ChatGPT routes
 import habitRoutes from "./routes/habitRoutes"; // Import habit routes
 import userSettingRoute from "./routes/userSettingRoutes"; // Import user setting routes
 import { CORS_ORIGINS, PORT as CFG_PORT, isProd, logEnvSummary } from "./config/env";
+import devRouter from "./routes/devRoutes";
 
-
-dotenv.config(); // Load environment variables from .env file
 
 const app: Application = express();
 
@@ -48,6 +46,9 @@ app.use("/api/trainings", trainingRoutes); // Training routes
 app.use("/api/chat", chatGPTRouter); // ChatGPT routes
 app.use("/api/habits", habitRoutes); // Habit routes
 app.use("/api/userSetting", userSettingRoute); // User setting routes
+if (!isProd) {
+  app.use("/api/dev", devRouter);
+}
 
 const PORT = CFG_PORT;
 

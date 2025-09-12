@@ -18,7 +18,7 @@ export async function issueVerificationForUser(userId: number, toEmail: string, 
     [token, expires, userId]
   );
 
-  const verifyLink = `${appFrontendUrl()}/auth/verify?token=${encodeURIComponent(token)}`;
+  const verifyLink = `${appFrontendUrl()}/api/auth/verify?token=${encodeURIComponent(token)}`;
 
   const html = `
     <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto;line-height:1.5">

@@ -40,3 +40,22 @@ export async function meApi(): Promise<UserProfile> {
   if (!res.ok) throw new Error("Profile load failed");
   return res.json();
 }
+
+export async function verifyEmailApi(token: string): Promise<{ message: string }> {
+  const res = await fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`, { method: "GET" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.message || "Ověření se nezdařilo.");
+  return data;
+}
+
+// Znovu odeslat ověřovací e-mail
+export async function resendVerificationApi(email: string): Promise<{ message: string }> {
+  const res = await fetch(`/api/auth/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.message || "Odeslání se nezdařilo.");
+  return data;
+}
