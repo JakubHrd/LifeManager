@@ -42,7 +42,7 @@ export async function meApi(): Promise<UserProfile> {
 }
 
 export async function verifyEmailApi(token: string): Promise<{ message: string }> {
-  const res = await fetch(`/api/auth/verify?token=${encodeURIComponent(token)}`, { method: "GET" });
+  const res = await fetch(`${serverUrl}/api/auth/verify?token=${encodeURIComponent(token)}`, { method: "GET" });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.message || "Ověření se nezdařilo.");
   return data;
@@ -50,7 +50,7 @@ export async function verifyEmailApi(token: string): Promise<{ message: string }
 
 // Znovu odeslat ověřovací e-mail
 export async function resendVerificationApi(email: string): Promise<{ message: string }> {
-  const res = await fetch(`/api/auth/resend-verification`, {
+  const res = await fetch(`${serverUrl}/api/auth/resend-verification`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),

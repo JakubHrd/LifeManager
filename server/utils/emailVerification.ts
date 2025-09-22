@@ -19,7 +19,7 @@ export async function issueVerificationForUser(userId: number, toEmail: string, 
   );
 
   const verifyLink = `${appFrontendUrl()}/api/auth/verify?token=${encodeURIComponent(token)}`;
-
+  console.log("[verify] link:", verifyLink);
   const html = `
     <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto;line-height:1.5">
       <h2>Ahoj${username ? " " + username : ""} 👋</h2>

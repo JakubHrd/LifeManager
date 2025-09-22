@@ -46,10 +46,10 @@ app.use("/api/trainings", trainingRoutes); // Training routes
 app.use("/api/chat", chatGPTRouter); // ChatGPT routes
 app.use("/api/habits", habitRoutes); // Habit routes
 app.use("/api/userSetting", userSettingRoute); // User setting routes
-if (!isProd) {
-  app.use("/api/dev", devRouter);
-}
-
+/*if (!isProd) {
+  
+}*/
+app.use("/api/dev", devRouter);
 const PORT = CFG_PORT;
 
 /**
